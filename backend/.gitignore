@@ -15,3 +15,6 @@
 # Logs
 logs/
 *.log
+
+# Sensitive configs
+src/main/resources/application.properties

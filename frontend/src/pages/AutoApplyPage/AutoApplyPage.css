@@ -33,13 +33,48 @@
 }
 
 .auto-apply-form input,
-.auto-apply-form textarea {
+.auto-apply-form textarea,
+.auto-apply-form select {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: #120b22;
   border-radius: 14px;
   padding: 0.85rem 1rem;
   color: #fff;
   font-size: 1rem;
+}
+
+.auto-apply-form input[type="file"] {
+  padding: 0.6rem;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+}
+
+.file-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #a7a0cb;
+}
+
+.file-error {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #ff8585;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #cbc4eb;
+}
+
+.checkbox-field input {
+  width: auto;
+  accent-color: #7b5bff;
 }
 
 .auto-apply-form button {

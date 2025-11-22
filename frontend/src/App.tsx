@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage/HomePage';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import AutoApplyPage from './pages/AutoApplyPage/AutoApplyPage';
+import SettingsPage from './pages/SettingsPage/SettingsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 
@@ -19,6 +20,7 @@ const App: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/auto-apply" element={<AutoApplyPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </main>

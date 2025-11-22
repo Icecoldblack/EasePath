@@ -7,10 +7,12 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import com.easepath.backend.dto.JobApplicationRequest;
 import com.easepath.backend.service.JobApplicationService;
 
 @Service
@@ -19,13 +21,33 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Value("${easepath.ai.api-key:PLACEHOLDER_AI_KEY}")
+    private String aiApiKey;
+
     @Override
-    public void applyToJobs(String jobTitle, String jobBoardUrl, int applicationCount, String apiKey) {
-        // This is a placeholder for the AI logic.
+    public void applyToJobs(JobApplicationRequest request) {
+        final String jobTitle = request.getJobTitle();
+        final String jobBoardUrl = request.getJobBoardUrl();
+        final int applicationCount = request.getApplicationCount();
+
+        // Placeholder for using the internally managed AI key.
+        System.out.println("Using AI key (placeholder): " + aiApiKey);
         System.out.println("Starting job application process...");
         System.out.println("Job Title: " + jobTitle);
         System.out.println("Job Board URL: " + jobBoardUrl);
         System.out.println("Application Count: " + applicationCount);
+        System.out.println("Resume summary length: " +
+                (request.getResumeSummary() != null ? request.getResumeSummary().length() : 0));
+        System.out.println("Resume file provided: " + (request.getResumeFileName() != null));
+        if (request.getResumeFileName() != null) {
+            int dataLength = request.getResumeFileData() != null ? request.getResumeFileData().length() : 0;
+            System.out.println("Resume file name: " + request.getResumeFileName() + " (encoded length: " + dataLength + ")");
+        }
+        System.out.println("Preferred companies: " + request.getPreferredCompanies());
+        System.out.println("Job preference: " + request.getJobPreference());
+        System.out.println("Salary range: " + request.getSalaryRange());
+        System.out.println("Looking for internships: " + request.isLookingForInternships());
+        System.out.println("Mail sender configured: " + (mailSender != null));
 
         try {
             Document doc = Jsoup.connect(jobBoardUrl).get();
@@ -50,7 +72,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Failed to scrape job board: " + e.getMessage());
         }
     }
 
