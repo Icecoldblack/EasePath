@@ -1,0 +1,17 @@
+# Maven
+/target/
+/.mvn/
+
+# IDEs
+.idea/
+/*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+
+# Logs
+logs/
+*.log
