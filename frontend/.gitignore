@@ -19,3 +19,6 @@ lerna-debug.log*
 *.sln
 *.sw?
 .DS_Store
+
+# .env files
+.env

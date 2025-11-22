@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { GoogleLogin } from '@react-oauth/google';
 const HomePage: React.FC = () => {
   return (
     <div className="login-page">
@@ -13,6 +13,14 @@ const HomePage: React.FC = () => {
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" />
           Sign in with Google
         </button>
+        <GoogleLogin
+          onSuccess={credentialResponse => {
+            console.log(credentialResponse);
+          }}
+          onError={() => {
+            console.log('Login Failed');
+          }}
+        />
       </div>
     </div>
   );
