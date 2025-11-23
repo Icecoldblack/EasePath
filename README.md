@@ -73,6 +73,19 @@ cd E_Resume
    ```
 4. Vite serves the app at `http://localhost:5173` (proxying to the backend via relative `/api/...` calls).
 
+5. Install Login Background animations:
+   ``` StarBorder
+   npx jsrepo add https://reactbits.dev/ts/default/Animations/StarBorder
+   ```
+   ``` Auroua
+   npx jsrepo add https://reactbits.dev/ts/default/Backgrounds/Aurora
+   ```
+   ```GridMotion
+   npx jsrepo add https://reactbits.dev/ts/default/Backgrounds/GridMotion
+   ```
+   ```Split text
+   npx jsrepo add https://reactbits.dev/ts/default/TextAnimations/SplitText
+   ```
 #### NPM scripts
 | Command        | Description |
 | -------------- | ----------- |
