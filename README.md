@@ -7,6 +7,7 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
 - **Auto Apply workflow** that collects job keywords, job board URLs, target application counts, resume summaries, and optional PDF/DOC resumes (validated and Base64 encoded before sending to the API).
 - **Google OAuth sign-in** on the landing page so users authenticate with their Gmail accounts before accessing dashboard tools (no SQL database required).
 - **Job Application API** (`POST /api/apply`) that logs the request, scrapes job listings with Jsoup, simulates AI filtering, and emails users when manual prompts are detected.
+- **AI scoring filter** that calls an AI scoring service (or a built-in heuristic fallback) to rank jobs before attempting auto applications.
 - **Resume & user sample endpoints** for mocking data (`/api/resumes`, `/api/resumes/sample`, `/api/users`, `/api/users/sample`).
 - **Extensible architecture** with placeholder hooks for AI services (configured via `easepath.ai.api-key`) and SMTP notifications via Spring Mail.
 
@@ -49,6 +50,7 @@ cd E_Resume
    spring.mail.username=your-email@gmail.com
    spring.mail.password=your-app-password
    easepath.ai.api-key=YOUR_AI_SERVICE_KEY
+   easepath.ai.score-endpoint=https://api.easepath.ai/v1/score
    ```
    > `application.properties` is gitignored so secrets stay local.
 2. Install dependencies & run:
@@ -120,13 +122,13 @@ cd E_Resume
 ```
 
 ## Development Notes
-- The backend currently logs AI-key usage and job scraping steps; you can plug in real AI services or persistence layers where placeholders exist in `JobApplicationServiceImpl`.
+- `JobApplicationServiceImpl` now consults `AiScoringService`, which calls the configurable AI endpoint via Spring WebClient. If the endpoint/key is missing it falls back to keyword-based heuristics so local development still works.
 - Spring Mail is wired but `mailSender.send()` is commented out until credentials are ready.
 - Authentication is handled with Google OAuth via `@react-oauth/google` (see `HomePage` and `main.tsx`). The resulting credential can be exchanged with your backend if you later enforce token verification.
-- Because the frontend fetches `/api/...` relatively, configure a dev proxy (Vite) or run both apps behind the same domain in production.
+- `vite.config.ts` proxies `/api` to `http://localhost:8080` during development. If you change backend ports, update the proxy block and restart `npm run dev`.
 
 ## Roadmap Ideas
 1. Replace placeholder AI calls with a real LLM integration using `easepath.ai.api-key`.
 2. Enable real email delivery and add customizable notification templates.
-3. Flesh out the dashboard metrics using real backend data or APIs.
+3. Flesh out the dashboard metrics using real backend/AI scoring data.
 4. Persist resumes/applications in a storage layer (NoSQL/Firestore/etc.) once data requirements solidify.

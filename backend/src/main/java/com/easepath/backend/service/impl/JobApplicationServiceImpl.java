@@ -6,23 +6,34 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import com.easepath.backend.dto.AiScoreResult;
 import com.easepath.backend.dto.JobApplicationRequest;
+import com.easepath.backend.service.AiScoringService;
 import com.easepath.backend.service.JobApplicationService;
 
 @Service
 public class JobApplicationServiceImpl implements JobApplicationService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobApplicationServiceImpl.class);
+    private static final double MIN_AI_SCORE = 0.45;
+
+    private final JavaMailSender mailSender;
+    private final AiScoringService aiScoringService;
 
     @Value("${easepath.ai.api-key:PLACEHOLDER_AI_KEY}")
     private String aiApiKey;
+
+    public JobApplicationServiceImpl(JavaMailSender mailSender, AiScoringService aiScoringService) {
+        this.mailSender = mailSender;
+        this.aiScoringService = aiScoringService;
+    }
 
     @Override
     public void applyToJobs(JobApplicationRequest request) {
@@ -31,23 +42,21 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         final int applicationCount = request.getApplicationCount();
 
         // Placeholder for using the internally managed AI key.
-        System.out.println("Using AI key (placeholder): " + aiApiKey);
-        System.out.println("Starting job application process...");
-        System.out.println("Job Title: " + jobTitle);
-        System.out.println("Job Board URL: " + jobBoardUrl);
-        System.out.println("Application Count: " + applicationCount);
-        System.out.println("Resume summary length: " +
-                (request.getResumeSummary() != null ? request.getResumeSummary().length() : 0));
-        System.out.println("Resume file provided: " + (request.getResumeFileName() != null));
+        LOGGER.info("Using AI key (placeholder value truncated): {}", aiApiKey != null && aiApiKey.length() > 6
+            ? aiApiKey.substring(0, 6) + "***"
+            : "not configured");
+        LOGGER.info("Starting job application process for title '{}' against '{}'", jobTitle, jobBoardUrl);
+        LOGGER.info("Application Count target: {}", applicationCount);
+        LOGGER.info("Resume summary length: {}", request.getResumeSummary() != null ? request.getResumeSummary().length() : 0);
+        LOGGER.info("Resume file provided: {}", request.getResumeFileName() != null);
         if (request.getResumeFileName() != null) {
             int dataLength = request.getResumeFileData() != null ? request.getResumeFileData().length() : 0;
-            System.out.println("Resume file name: " + request.getResumeFileName() + " (encoded length: " + dataLength + ")");
+            LOGGER.info("Resume file name: {} (encoded length: {})", request.getResumeFileName(), dataLength);
         }
-        System.out.println("Preferred companies: " + request.getPreferredCompanies());
-        System.out.println("Job preference: " + request.getJobPreference());
-        System.out.println("Salary range: " + request.getSalaryRange());
-        System.out.println("Looking for internships: " + request.isLookingForInternships());
-        System.out.println("Mail sender configured: " + (mailSender != null));
+        LOGGER.info("Preferred companies: {}", request.getPreferredCompanies());
+        LOGGER.info("Job preference: {} | Salary range: {} | Internship opt-in: {}", request.getJobPreference(),
+            request.getSalaryRange(), request.isLookingForInternships());
+        LOGGER.info("Mail sender configured: {}", mailSender != null);
 
         try {
             Document doc = Jsoup.connect(jobBoardUrl).get();
@@ -60,25 +69,37 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 }
 
                 String jobUrl = link.absUrl("href");
-                if (isPromisingJob(jobUrl, jobTitle)) {
-                    // Placeholder for checking for writing prompts
-                    if (hasWritingPrompt(jobUrl)) {
-                        sendEmailToUser(jobUrl, jobTitle);
-                    } else {
-                        // Placeholder for submitting the application
-                        System.out.println("Applying to: " + jobUrl);
-                        appliedCount++;
-                    }
+                if (!isPromisingJob(jobUrl, jobTitle)) {
+                    continue;
+                }
+
+                String linkText = link.text();
+                String jobSnippet = (linkText == null || linkText.isBlank()) ? jobTitle : linkText;
+                AiScoreResult scoreResult = aiScoringService.scoreJobFit(request, jobSnippet);
+                LOGGER.info("AI score for job '{}': {} ({})", jobSnippet, scoreResult.score(), scoreResult.reasoning());
+                if (scoreResult.score() < MIN_AI_SCORE) {
+                    LOGGER.info("Skipping job '{}' due to low AI score", jobUrl);
+                    continue;
+                }
+
+                if (hasWritingPrompt(jobUrl)) {
+                    sendEmailToUser(jobUrl, jobTitle);
+                } else {
+                    LOGGER.info("Applying to: {}", jobUrl);
+                    appliedCount++;
                 }
             }
         } catch (IOException e) {
-            System.err.println("Failed to scrape job board: " + e.getMessage());
+            LOGGER.error("Failed to scrape job board: {}", e.getMessage());
         }
     }
 
     private boolean isPromisingJob(String jobUrl, String jobTitle) {
         // Placeholder for AI logic to determine if the job is a good fit.
         // For now, we'll just check if the URL contains the job title keywords.
+        if (jobTitle == null || jobTitle.isBlank()) {
+            return true;
+        }
         String[] keywords = jobTitle.toLowerCase().split(" ");
         String urlLower = jobUrl.toLowerCase();
         for (String keyword : keywords) {
@@ -101,6 +122,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         message.setSubject("Action Required for Job Application: " + jobTitle);
         message.setText("Please complete the writing prompt for the following job application:\n\n" + jobUrl);
         // mailSender.send(message); // Uncomment when email is configured
-        System.out.println("Sending email for job with writing prompt: " + jobUrl);
+        LOGGER.info("Sending email for job with writing prompt: {}", jobUrl);
     }
 }
