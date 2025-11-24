@@ -51,9 +51,11 @@ cd E_Resume
    spring.mail.password=your-app-password
    easepath.ai.api-key=YOUR_AI_SERVICE_KEY
    easepath.ai.score-endpoint=https://api.easepath.ai/v1/score
+   spring.data.mongodb.uri=${EASEPATH_MONGODB_URI:mongodb://localhost:27017/easepath}
    ```
    > `application.properties` is gitignored so secrets stay local.
-2. Install dependencies & run:
+2. If you are using MongoDB Atlas or a remote cluster, export `EASEPATH_MONGODB_URI` (and optionally `EASEPATH_MONGODB_DB`) before starting Spring Boot so the backend can persist parsed resumes.
+3. Install dependencies & run:
    ```bash
    mvn spring-boot:run
    ```
@@ -100,8 +102,8 @@ cd E_Resume
 | Method | Endpoint                | Description |
 | ------ | ----------------------- | ----------- |
 | POST   | `/api/apply`            | Starts the placeholder auto-apply routine using `JobApplicationRequest` payload (job filters, resume summary/file, preferences). |
-| POST   | `/api/resumes`          | Accepts a `ResumeDto` and echoes it back (stub for persistence). |
-| GET    | `/api/resumes/sample`   | Returns a mock resume response for UI testing. |
+| POST   | `/api/resumes`          | Persists a parsed resume to MongoDB and extracts quick keywords for later querying. |
+| GET    | `/api/resumes/sample`   | Returns the most recent stored resume, falling back to a mock response for UI testing. |
 | POST   | `/api/users`            | Accepts a `UserDto` and echoes it back. |
 | GET    | `/api/users/sample`     | Returns a sample user profile. |
 

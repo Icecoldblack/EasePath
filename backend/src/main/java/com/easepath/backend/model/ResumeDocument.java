@@ -1,35 +1,31 @@
-package com.easepath.backend.dto;
+package com.easepath.backend.model;
 
 import java.time.Instant;
 import java.util.List;
 
-import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-public class ResumeDto {
+@Document(collection = "resumes")
+public class ResumeDocument {
 
+    @Id
     private String id;
-
-    @NotBlank
     private String title;
-
-    @NotBlank
     private String summary;
-
     private String parsedText;
     private List<String> keywords;
     private Instant createdAt;
 
-    public ResumeDto() {}
+    public ResumeDocument() {
+        // Default constructor for Mongo mapping
+    }
 
-    public ResumeDto(String id, String title, String summary) {
+    public ResumeDocument(String id, String title, String summary, String parsedText,
+            List<String> keywords, Instant createdAt) {
         this.id = id;
         this.title = title;
         this.summary = summary;
-    }
-
-    public ResumeDto(String id, String title, String summary, String parsedText,
-            List<String> keywords, Instant createdAt) {
-        this(id, title, summary);
         this.parsedText = parsedText;
         this.keywords = keywords;
         this.createdAt = createdAt;
