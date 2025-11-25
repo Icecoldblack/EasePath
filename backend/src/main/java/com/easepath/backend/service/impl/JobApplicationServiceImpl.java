@@ -19,8 +19,6 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -43,7 +41,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private static final double MIN_AI_SCORE = 0.45;
     private static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-    private final JavaMailSender mailSender;
     private final AiScoringService aiScoringService;
     private final JobApplicationRepository jobApplicationRepository;
     private final ResumeService resumeService;
@@ -51,8 +48,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     @Value("${easepath.ai.api-key:PLACEHOLDER_AI_KEY}")
     private String aiApiKey;
 
-    public JobApplicationServiceImpl(JavaMailSender mailSender, AiScoringService aiScoringService, JobApplicationRepository jobApplicationRepository, ResumeService resumeService) {
-        this.mailSender = mailSender;
+    public JobApplicationServiceImpl(AiScoringService aiScoringService, JobApplicationRepository jobApplicationRepository, ResumeService resumeService) {
         this.aiScoringService = aiScoringService;
         this.jobApplicationRepository = jobApplicationRepository;
         this.resumeService = resumeService;
@@ -132,7 +128,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         LOGGER.info("Preferred companies: {}", request.getPreferredCompanies());
         LOGGER.info("Job preference: {} | Salary range: {} | Internship opt-in: {}", request.getJobPreference(),
             request.getSalaryRange(), request.isLookingForInternships());
-        LOGGER.info("Mail sender configured: {}", mailSender != null);
 
         try {
             Connection connection = Jsoup.connect(jobBoardUrl)
@@ -195,11 +190,11 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 }
 
                 if (hasWritingPrompt(jobUrl)) {
-                    sendEmailToUser(jobUrl, jobTitle);
+                    LOGGER.info("Writing prompt detected for job: {}", jobUrl);
                     result.getMatches().add(new JobMatchResult(jobUrl, jobSnippet,
-                        MatchStatus.SKIPPED_PROMPT, "Writing prompt detected; emailed user", scoreResult.score()));
+                        MatchStatus.SKIPPED_PROMPT, "Writing prompt detected", scoreResult.score()));
                     result.setSkippedPrompts(result.getSkippedPrompts() + 1);
-                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_PROMPT.name(), scoreResult.score(), "Writing prompt detected; emailed user");
+                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_PROMPT.name(), scoreResult.score(), "Writing prompt detected");
                 } else {
                     // Add to candidates list instead of applying immediately
                     candidates.add(new JobMatchResult(jobUrl, jobSnippet,
@@ -278,15 +273,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         // Placeholder for AI logic to detect writing prompts.
         // This would be a complex task. For now, we'll simulate it.
         return jobUrl.contains("assessment"); // Simple simulation
-    }
-
-    private void sendEmailToUser(String jobUrl, String jobTitle) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo("user@example.com"); // This should be the user's actual email
-        message.setSubject("Action Required for Job Application: " + jobTitle);
-        message.setText("Please complete the writing prompt for the following job application:\n\n" + jobUrl);
-        // mailSender.send(message); // Uncomment when email is configured
-        LOGGER.info("Sending email for job with writing prompt: {}", jobUrl);
     }
 
     private String extractTextFromPdf(String base64Data) throws IOException {
