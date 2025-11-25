@@ -9,6 +9,7 @@ public class JobMatchResult {
 
     public enum MatchStatus {
         APPLIED,
+        PENDING,
         SKIPPED_LOW_SCORE,
         SKIPPED_PROMPT,
         SKIPPED_UNRELATED,

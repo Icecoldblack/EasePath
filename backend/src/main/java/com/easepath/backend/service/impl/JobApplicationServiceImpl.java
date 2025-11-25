@@ -142,6 +142,19 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
             Document doc = connection.get();
             Elements jobLinks = doc.select("a[href*=/jobs/view/]"); // Example selector for LinkedIn
+            
+            // Fallback selector if specific one fails
+            if (jobLinks.isEmpty()) {
+                LOGGER.info("No jobs found with primary selector, trying fallback...");
+                jobLinks = doc.select("a[href*='job'], a[href*='career']");
+            }
+
+            if (jobLinks.isEmpty()) {
+                LOGGER.warn("No job links found on the provided URL: {}", jobBoardUrl);
+                result.getMatches().add(new JobMatchResult(jobBoardUrl, "N/A", 
+                    MatchStatus.ERROR, "No job links found on this page. Check the URL or the site structure."));
+                saveApplicationAttempt(jobBoardUrl, "N/A", MatchStatus.ERROR.name(), 0.0, "No job links found.");
+            }
 
             int appliedCount = 0;
             for (Element link : jobLinks) {
@@ -178,11 +191,13 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     result.setSkippedPrompts(result.getSkippedPrompts() + 1);
                     saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_PROMPT.name(), scoreResult.score(), "Writing prompt detected; emailed user");
                 } else {
-                    LOGGER.info("Applying to: {}", jobUrl);
-                    appliedCount++;
+                    // Currently we are not actually applying, just identifying matches.
+                    // User requested not to increment count unless we actually apply.
+                    LOGGER.info("Job matched (Application pending): {}", jobUrl);
+                    // appliedCount++; // Commented out as we are not actually applying yet
                     result.getMatches().add(new JobMatchResult(jobUrl, jobSnippet,
-                        MatchStatus.APPLIED, scoreResult.reasoning()));
-                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.APPLIED.name(), scoreResult.score(), scoreResult.reasoning());
+                        MatchStatus.PENDING, "Match found. Application logic pending. " + scoreResult.reasoning()));
+                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.PENDING.name(), scoreResult.score(), "Match found. Application logic pending.");
                 }
             }
             result.setAppliedCount(appliedCount);

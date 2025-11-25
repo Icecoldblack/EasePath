@@ -4,7 +4,7 @@ import './AutoApplyPage.css';
 type JobMatchResult = {
   jobUrl: string
   title: string
-  status: 'APPLIED' | 'SKIPPED_LOW_SCORE' | 'SKIPPED_PROMPT' | 'SKIPPED_UNRELATED' | 'ERROR'
+  status: 'APPLIED' | 'PENDING' | 'SKIPPED_LOW_SCORE' | 'SKIPPED_PROMPT' | 'SKIPPED_UNRELATED' | 'ERROR'
   reason?: string
 }
 
