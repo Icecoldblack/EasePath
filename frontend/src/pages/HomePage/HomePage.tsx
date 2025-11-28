@@ -1,7 +1,7 @@
 import React from 'react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
+import {jwtDecode}  from 'jwt-decode';
 import { useAuth } from '../../context/AuthContext';
 import SplitText from "../../context/SplitText";
 import StarBorder from "../../context/StarBorder";
@@ -96,7 +96,7 @@ const items = [
 
 
   return (
-    <>
+    <React.Fragment>
       <div className="login-page">
         
         {/* Background layer */}
@@ -104,32 +104,39 @@ const items = [
           <GridMotion items={items} />
         </div>
 
+        <div className="auth-layout">
+          <div className="auth-left">
+              <SplitText
+                text="Easepath"
+                className="login-logo1"
+                delay={100}
+                duration={0.6}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 40 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                tag="h2"
+                rootMargin="-100px"
+                textAlign="left"
+                onLetterAnimationComplete={handleAnimationComplete}
+              />
+            <h2 className="auth-subtitle">Welcome to your future.</h2>
+            <p className="auth-text">Let’s build your career path together.</p>
+          </div>
+
         {/* Foreground content */}
         <div className="login-card">
-          <SplitText
-            text="Easepath"
-            className="login-logo"
-            delay={100}
-            duration={0.6}
-            ease="power3.out"
-            splitType="chars"
-            from={{ opacity: 0, y: 40 }}
-            to={{ opacity: 1, y: 0 }}
-            threshold={0.1}
-            tag="h2"
-            rootMargin="-100px"
-            textAlign="center"
-            onLetterAnimationComplete={handleAnimationComplete}
-          />
           <h2>Welcome</h2>
           <p><b>Use your Google account to continue.</b></p>
 
           <div className="google-login-container">
             <GoogleLogin onSuccess={handleSuccess} onError={handleError} />
           </div>
-
+          
           <p className="login-footer-text"><b>Secure sign-in powered by Google OAuth.</b></p>
         </div>
+      </div>
       </div>
 
       <p style={{
@@ -141,7 +148,7 @@ const items = [
       }}>
         <i>By Two Minorities</i>
       </p>
-    </>
+    </React.Fragment>
   );
 };
 
