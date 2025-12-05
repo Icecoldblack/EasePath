@@ -17,12 +17,14 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
   - **Resend Integration**: Uses Resend (free tier) for reliable email delivery.
 - **Google OAuth sign-in** on the landing page so users authenticate with their Gmail accounts before accessing dashboard tools.
 - **Job Application API** (`POST /api/apply`) that logs the request, scrapes job listings with Jsoup, simulates AI filtering, and emails users when manual prompts are detected.
+- **Browser Extension**: A Chrome/Edge extension that uses AI to autofill job application forms on external sites, bypassing the need for complex scraping of authenticated portals.
 - **Extensible architecture** with placeholder hooks for AI services (configured via `easepath.ai.api-key`) and SMTP notifications via Spring Mail (configured for Resend).
 
 ## Tech Stack
 - **Frontend:** React 18, TypeScript, Vite, React Router, @react-oauth/google, Axios, custom AuthContext, jwt-decode.
 - **Styling:** CSS modules per page/component, dark UI system ("Aurora" theme).
 - **Backend:** Java 21, Spring Boot 3.3, Spring Web, Validation, Spring Mail, Jsoup (Scraping), Apache PDFBox (PDF Parsing), Maven build.
+- **Extension:** Manifest V3, JavaScript, HTML/CSS (Popup).
 
 ## Repository Layout
 ```
@@ -30,12 +32,13 @@ E_Resume/
 ├── backend/                    # Spring Boot API
 │   ├── pom.xml
 │   └── src/main/java/com/easepath/backend/
-│       ├── controller/         # JobApplication, Resume, User controllers
-│       ├── dto/                # JobApplicationRequest, ResumeDto, UserDto, JobMatchResult
-│       └── service/impl/       # Business logic (Scraping, PDF Parsing, Emailing)
 ├── frontend/                   # React + Vite client
-│   ├── src/components          # Navbar, ProtectedRoute, etc.
-│   └── src/pages               # Home, Dashboard, AutoApply, Settings
+│   ├── src/components
+│   └── src/pages
+├── extension/                  # Browser Extension (Chrome/Edge)
+│   ├── manifest.json
+│   ├── popup/
+│   └── scripts/
 └── README.md
 ```
 
@@ -88,6 +91,13 @@ cd E_Resume
    npm run dev
    ```
 4. Vite serves the app at `http://localhost:5173` (proxying to the backend via relative `/api/...` calls).
+
+### 4. Extension Setup (`/extension`)
+1. Open Chrome and navigate to `chrome://extensions`.
+2. Enable **Developer mode** (toggle in the top right).
+3. Click **Load unpacked**.
+4. Select the `extension` folder in this repository.
+5. The EasePath extension icon should appear in your toolbar.
 
 5. Install Login Background animations:
    ``` StarBorder
