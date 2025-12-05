@@ -8,23 +8,143 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>EasePath</h1>
-            <span id="status" class="status-badge">Ready</span>
+        <!-- Header with tabs -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">EasePath</span>
+            </div>
+            <div class="header-actions">
+                <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+            </div>
         </header>
-        
-        <div class="main-actions">
-            <button id="autofill-btn" class="primary-btn">
-                ✨ AI Autofill
-            </button>
-            <button id="save-btn" class="secondary-btn">
-                💾 Save Page Structure
-            </button>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="autofill">✨ Autofill</button>
+            <button class="tab" data-tab="profile">👤 Profile</button>
         </div>
 
-        <div class="info-section">
-            <p>Navigate to a job application page and click Autofill.</p>
+        <!-- Autofill Tab -->
+        <div id="autofill-tab" class="tab-content active">
+            <!-- Not Connected State -->
+            <div id="not-connected" class="section">
+                <div class="info-card warning">
+                    <div class="info-icon">🔗</div>
+                    <div class="info-content">
+                        <strong>Not Connected</strong>
+                        <p>Please log in to EasePath website first, then click below to sync.</p>
+                    </div>
+                </div>
+                <button id="sync-btn" class="primary-btn full-width">
+                    🔄 Sync with EasePath
+                </button>
+                <p class="help-text">
+                    Don't have an account? <a href="http://localhost:5173" target="_blank">Sign up here</a>
+                </p>
+            </div>
+
+            <!-- Connected State -->
+            <div id="connected" class="section hidden">
+                <!-- AI Feature Banner -->
+                <div class="feature-banner" id="feature-banner">
+                    <div class="feature-header">
+                        <span class="feature-icon">✨</span>
+                        <span class="feature-title">Autofill Every Question With AI</span>
+                        <button id="close-banner" class="close-btn">×</button>
+                    </div>
+                    <ul class="feature-list">
+                        <li>AI Autofill fills almost every question using your profile.</li>
+                        <li>Basic autofill for direct profile fields is always free.</li>
+                        <li>Your data is securely stored and never shared.</li>
+                    </ul>
+                </div>
+
+                <!-- Main Action Card -->
+                <div class="action-card">
+                    <div class="action-header">
+                        <span class="action-icon">⚡</span>
+                        <div class="action-text">
+                            <strong>Autofill this job application!</strong>
+                            <span id="stats-text" class="stats">Ready to fill</span>
+                        </div>
+                    </div>
+                    <button id="autofill-btn" class="autofill-btn">
+                        ✨ Autofill this page
+                    </button>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="message-area" class="message-area hidden"></div>
+
+                <!-- Resume Section -->
+                <div class="resume-section">
+                    <div class="section-header">
+                        <span class="section-icon">📄</span>
+                        <span class="section-title">Resume</span>
+                    </div>
+                    <div id="resume-info" class="resume-info">
+                        <span id="resume-name" class="resume-name">No resume uploaded</span>
+                        <button id="view-resume-btn" class="icon-btn small hidden">👁️</button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button id="feedback-btn" class="action-link">
+                        <span>✓</span> This worked correctly
+                    </button>
+                    <button id="report-btn" class="action-link">
+                        <span>🚩</span> Report an issue
+                    </button>
+                </div>
+            </div>
         </div>
+
+        <!-- Profile Tab -->
+        <div id="profile-tab" class="tab-content">
+            <div id="profile-not-connected" class="section">
+                <div class="info-card">
+                    <p>Connect to EasePath to view your profile.</p>
+                </div>
+            </div>
+            
+            <div id="profile-connected" class="section hidden">
+                <div class="profile-header">
+                    <div class="avatar" id="avatar">?</div>
+                    <div class="profile-info">
+                        <strong id="profile-name">Loading...</strong>
+                        <span id="profile-email" class="profile-email">Loading...</span>
+                    </div>
+                </div>
+                
+                <div class="profile-stats">
+                    <div class="stat">
+                        <span class="stat-value" id="fields-count">0</span>
+                        <span class="stat-label">Profile Fields</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="applications-count">0</span>
+                        <span class="stat-label">Applications</span>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <a href="http://localhost:5173/settings" target="_blank" class="secondary-btn full-width">
+                        ✏️ Edit Profile
+                    </a>
+                    <button id="disconnect-btn" class="text-btn">
+                        Disconnect Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>EasePath v1.0</span>
+            <a href="http://localhost:5173/dashboard" target="_blank">Dashboard →</a>
+        </footer>
     </div>
     <script src="popup.js"></script>
 </body>

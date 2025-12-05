@@ -11,19 +11,27 @@ public class ResumeDocument {
 
     @Id
     private String id;
+    private String userEmail; // Links resume to user
     private String title;
     private String summary;
     private String parsedText;
     private List<String> keywords;
     private Instant createdAt;
+    
+    // File storage fields
+    private String fileName;
+    private String contentType;
+    private String fileData; // Base64 encoded file content
+    private Long fileSize;
 
     public ResumeDocument() {
         // Default constructor for Mongo mapping
     }
 
-    public ResumeDocument(String id, String title, String summary, String parsedText,
+    public ResumeDocument(String id, String userEmail, String title, String summary, String parsedText,
             List<String> keywords, Instant createdAt) {
         this.id = id;
+        this.userEmail = userEmail;
         this.title = title;
         this.summary = summary;
         this.parsedText = parsedText;
@@ -33,6 +41,10 @@ public class ResumeDocument {
 
     public String getId() {
         return id;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
     }
 
     public String getTitle() {
@@ -59,6 +71,10 @@ public class ResumeDocument {
         this.id = id;
     }
 
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -77,5 +93,38 @@ public class ResumeDocument {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    // File storage getters/setters
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
+    public String getFileData() {
+        return fileData;
+    }
+
+    public void setFileData(String fileData) {
+        this.fileData = fileData;
+    }
+
+    public Long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
     }
 }

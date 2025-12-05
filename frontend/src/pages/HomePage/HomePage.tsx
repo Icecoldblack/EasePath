@@ -13,16 +13,39 @@ const HomePage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSuccess = (response: CredentialResponse) => {
+  const handleSuccess = async (response: CredentialResponse) => {
     if (response.credential) {
       try {
         const decoded: any = jwtDecode(response.credential);
+        
+        // Check if user has completed onboarding by fetching from backend
+        let onboardingCompleted = false;
+        try {
+          const profileResponse = await fetch(
+            `http://localhost:8080/api/extension/profile?email=${encodeURIComponent(decoded.email)}`
+          );
+          if (profileResponse.ok) {
+            const profile = await profileResponse.json();
+            onboardingCompleted = profile.onboardingCompleted === true;
+          }
+        } catch (err) {
+          console.log('Could not fetch profile, will check onboarding');
+        }
+        
         login({
           email: decoded.email,
           name: decoded.name,
-          picture: decoded.picture
+          picture: decoded.picture,
+          googleId: decoded.sub,
+          onboardingCompleted: onboardingCompleted
         });
-        navigate('/dashboard');
+        
+        // Navigate based on onboarding status
+        if (onboardingCompleted) {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding');
+        }
       } catch (error) {
         console.error('Failed to decode token', error);
       }

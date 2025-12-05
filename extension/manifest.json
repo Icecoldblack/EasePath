@@ -10,7 +10,8 @@
     "identity"
   ],
   "host_permissions": [
-    "http://localhost:8080/*"
+    "http://localhost:8080/*",
+    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup/popup.html",
@@ -19,7 +20,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["scripts/content.js"]
+      "js": ["scripts/content.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {
