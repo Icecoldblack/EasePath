@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage/DashboardPage';
 import AutoApplyPage from './pages/AutoApplyPage/AutoApplyPage';
 import SettingsPage from './pages/SettingsPage/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage/OnboardingPage';
+import JobsPage from './pages/JobsPage/JobsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -15,8 +16,8 @@ const AppContent: React.FC = () => {
   const { theme } = useTheme();
   const location = useLocation();
   
-  // Hide navbar on onboarding page, dashboard (has own sidebar), settings, auto-apply
-  const hideNavbarPages = ['/onboarding', '/dashboard', '/settings', '/auto-apply'];
+  // Hide navbar on onboarding page, dashboard (has own sidebar), settings, auto-apply, jobs
+  const hideNavbarPages = ['/onboarding', '/dashboard', '/settings', '/auto-apply', '/jobs'];
   const showNavbar = isAuthenticated && 
                      user?.onboardingCompleted && 
                      !hideNavbarPages.includes(location.pathname);
@@ -32,6 +33,7 @@ const AppContent: React.FC = () => {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/auto-apply" element={<AutoApplyPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/jobs" element={<JobsPage />} />
           </Route>
         </Routes>
       </main>

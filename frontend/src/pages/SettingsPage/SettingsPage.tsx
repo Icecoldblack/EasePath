@@ -186,12 +186,12 @@ const SettingsPage: React.FC = () => {
           
           <motion.div 
             className={`nav-item ${activeNav === 'jobs' ? 'active' : ''}`}
-            onClick={() => handleNavClick('jobs', '/dashboard')}
+            onClick={() => handleNavClick('jobs', '/jobs')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
             <span className="nav-icon">💼</span>
-            {!sidebarCollapsed && <span className="nav-text">Jobs</span>}
+            {!sidebarCollapsed && <span className="nav-text">Find Jobs</span>}
           </motion.div>
           
           <motion.div 
