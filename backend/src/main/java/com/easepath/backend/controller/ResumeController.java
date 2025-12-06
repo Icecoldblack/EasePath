@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,6 +29,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/resume")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"})
 public class ResumeController {
 
     private static final Logger log = LoggerFactory.getLogger(ResumeController.class);
@@ -59,9 +62,17 @@ public class ResumeController {
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadResume(
             @RequestParam(value = "file") MultipartFile file,
-            @RequestParam(value = "email") String email) {
+            @RequestParam(value = "userEmail", required = false) String userEmail,
+            @RequestParam(value = "email", required = false) String email) {
 
-        log.info("Uploading resume for user: {}, file: {}", email, file.getOriginalFilename());
+        // Support both parameter names
+        String actualEmail = userEmail != null ? userEmail : email;
+        
+        log.info("Uploading resume for user: {}, file: {}", actualEmail, file.getOriginalFilename());
+
+        if (actualEmail == null || actualEmail.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
 
         // Validate file
         if (file.isEmpty()) {
@@ -82,9 +93,16 @@ public class ResumeController {
         }
 
         try {
-            // Store the resume
+            // Delete ALL existing resumes for this user (ensures no duplicates)
+            List<ResumeDocument> existingResumes = resumeRepository.findAllByUserEmail(actualEmail);
+            if (!existingResumes.isEmpty()) {
+                log.info("Deleting {} existing resume(s) for user: {}", existingResumes.size(), actualEmail);
+                resumeRepository.deleteAll(existingResumes);
+            }
+            
+            // Store the new resume
             ResumeDocument resumeDoc = new ResumeDocument();
-            resumeDoc.setUserEmail(email);
+            resumeDoc.setUserEmail(actualEmail);
             resumeDoc.setFileName(file.getOriginalFilename());
             resumeDoc.setContentType(contentType);
             resumeDoc.setFileData(Base64.getEncoder().encodeToString(file.getBytes()));
@@ -94,7 +112,7 @@ public class ResumeController {
             resumeRepository.save(resumeDoc);
 
             // Update user profile with resume filename
-            userProfileRepository.findByEmail(email).ifPresent(profile -> {
+            userProfileRepository.findByEmail(actualEmail).ifPresent(profile -> {
                 profile.setResumeFileName(file.getOriginalFilename());
                 profile.setUpdatedAt(Instant.now());
                 userProfileRepository.save(profile);
@@ -105,13 +123,30 @@ public class ResumeController {
             response.put("fileName", file.getOriginalFilename());
             response.put("message", "Resume uploaded successfully");
 
-            log.info("Resume uploaded successfully for user: {}", email);
+            log.info("Resume uploaded successfully for user: {}", actualEmail);
             return ResponseEntity.ok(response);
 
         } catch (IOException e) {
             log.error("Failed to upload resume: {}", e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of("error", "Failed to process file"));
         }
+    }
+
+    /**
+     * Get the user's current resume info by path variable.
+     */
+    @GetMapping("/{email}")
+    public ResponseEntity<Map<String, Object>> getResumeByPath(@org.springframework.web.bind.annotation.PathVariable String email) {
+        return resumeRepository.findTopByUserEmailOrderByCreatedAtDesc(email)
+                .map(resume -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("fileName", resume.getFileName());
+                    response.put("contentType", resume.getContentType());
+                    response.put("fileSize", resume.getFileSize());
+                    response.put("uploadedAt", resume.getCreatedAt().toString());
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**

@@ -4,11 +4,47 @@
   box-sizing: border-box;
 }
 
-body {
+html, body, #root {
   margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  height: 100%;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Dark Theme (Default) */
+body {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #fff;
+  background: #0f0a1e;
+}
+
+body.dark-theme {
+  background: #0f0a1e;
+  color: #fff;
+}
+
+/* Light Theme */
+body.light-theme {
+  background: #f8f5f1;
+  color: #1a1a2e;
+}
+
+/* App Root Theme Support */
+.app-root {
   min-height: 100vh;
+  display: flex;
+  background: transparent;
+  flex-direction: column;
+  transition: background 0.3s ease;
+}
+
+.app-root.light {
+  background: #f8f5f1;
+}
+
+.app-root.dark {
+  background: #0f0a1e;
 }
 
 .login-page {
@@ -35,14 +71,6 @@ body {
   font-size: 2rem;
 }
 
-
-.app-root {
-  min-height: 100vh;
-  display: flex;
-  background: transparent;
-  flex-direction: column;
-}
-
 .app-main {
   flex: 1;
   width: 100%;
@@ -62,6 +90,14 @@ body {
   background: #1C1A27;
   color: #f9fafb;
   border-bottom: 1px solid #333;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+/* Light theme navbar */
+.app-root.light .navbar {
+  background: #ffffff;
+  color: #1a1a2e;
+  border-bottom: 1px solid #e8dfd0;
 }
 
 .navbar-logo {

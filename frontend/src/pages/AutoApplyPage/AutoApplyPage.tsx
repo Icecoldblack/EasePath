@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import './AutoApplyPage.css';
 
 type JobMatchResult = {
@@ -21,6 +24,11 @@ type JobApplicationResult = {
 }
 
 const AutoApplyPage: React.FC = () => {
+  const { theme } = useTheme();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeNav, setActiveNav] = useState('auto-apply');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [jobTitle, setJobTitle] = useState('Software Engineering Intern');
   const [jobBoardUrl, setJobBoardUrl] = useState('');
   const [applicationCount, setApplicationCount] = useState(5);
@@ -35,7 +43,16 @@ const AutoApplyPage: React.FC = () => {
   const [applyResult, setApplyResult] = useState<JobApplicationResult | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+
+  const handleNavClick = (nav: string, path: string) => {
+    setActiveNav(nav);
+    navigate(path);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -118,10 +135,106 @@ const AutoApplyPage: React.FC = () => {
   };
 
   return (
-    <div className="auto-apply-page">
-      <section className="auto-apply-card">
-        <h2>Auto Job Applicator</h2>
-        <form className="auto-apply-form" onSubmit={handleSubmit}>
+    <div className={`auto-apply-container ${theme} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* Sidebar - Same as Dashboard */}
+      <motion.aside 
+        className={`auto-apply-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
+        initial={{ x: -260 }}
+        animate={{ x: 0, width: sidebarCollapsed ? 70 : 260 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        <div className="sidebar-logo">
+          <div className="logo-icon">EP</div>
+          {!sidebarCollapsed && <span className="logo-text">EasePath</span>}
+        </div>
+
+        {/* Collapse Toggle */}
+        <button 
+          className="sidebar-toggle"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {sidebarCollapsed ? (
+              <polyline points="9 18 15 12 9 6" />
+            ) : (
+              <polyline points="15 18 9 12 15 6" />
+            )}
+          </svg>
+        </button>
+
+        <nav className="sidebar-nav">
+          <motion.div 
+            className={`nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
+            onClick={() => handleNavClick('dashboard', '/dashboard')}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="nav-icon">📊</span>
+            {!sidebarCollapsed && <span className="nav-text">Dashboard</span>}
+          </motion.div>
+          
+          <motion.div 
+            className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`}
+            onClick={() => handleNavClick('auto-apply', '/auto-apply')}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="nav-icon">🚀</span>
+            {!sidebarCollapsed && <span className="nav-text">Auto Apply</span>}
+          </motion.div>
+          
+          <motion.div 
+            className={`nav-item ${activeNav === 'jobs' ? 'active' : ''}`}
+            onClick={() => handleNavClick('jobs', '/dashboard')}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="nav-icon">💼</span>
+            {!sidebarCollapsed && <span className="nav-text">Jobs</span>}
+          </motion.div>
+          
+          <motion.div 
+            className={`nav-item ${activeNav === 'resume' ? 'active' : ''}`}
+            onClick={() => handleNavClick('resume', '/settings')}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="nav-icon">📄</span>
+            {!sidebarCollapsed && <span className="nav-text">Resume</span>}
+          </motion.div>
+          
+          <motion.div 
+            className={`nav-item ${activeNav === 'settings' ? 'active' : ''}`}
+            onClick={() => handleNavClick('settings', '/settings')}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="nav-icon">⚙️</span>
+            {!sidebarCollapsed && <span className="nav-text">Settings</span>}
+          </motion.div>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-profile" onClick={handleLogout}>
+            <div className="user-avatar">
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            {!sidebarCollapsed && (
+              <div className="user-info">
+                <span className="user-name">{user?.name || 'User'}</span>
+                <span className="user-email">{user?.email || 'user@email.com'}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className={`auto-apply-main ${sidebarCollapsed ? 'expanded' : ''}`}>
+        <section className="auto-apply-card">
+          <h2>Auto Job Applicator</h2>
+          <form className="auto-apply-form" onSubmit={handleSubmit}>
         <label>
           Job Title / Keywords
           <input
@@ -234,7 +347,8 @@ const AutoApplyPage: React.FC = () => {
             </ul>
           </div>
         )}
-      </section>
+        </section>
+      </main>
     </div>
   );
 };

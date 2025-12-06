@@ -8,18 +8,21 @@ import SettingsPage from './pages/SettingsPage/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage/OnboardingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   
-  // Hide navbar on onboarding page or if user hasn't completed onboarding
+  // Hide navbar on onboarding page, dashboard (has own sidebar), settings, auto-apply
+  const hideNavbarPages = ['/onboarding', '/dashboard', '/settings', '/auto-apply'];
   const showNavbar = isAuthenticated && 
                      user?.onboardingCompleted && 
-                     location.pathname !== '/onboarding';
+                     !hideNavbarPages.includes(location.pathname);
 
   return (
-    <div className="app-root">
+    <div className={`app-root ${theme}`} data-theme={theme}>
       {showNavbar && <Navbar />}
       <main className="app-main" data-authenticated={isAuthenticated}>
         <Routes>
@@ -33,6 +36,14 @@ const App: React.FC = () => {
         </Routes>
       </main>
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 };
 
