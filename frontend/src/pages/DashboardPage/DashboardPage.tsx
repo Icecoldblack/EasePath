@@ -41,49 +41,98 @@ const DashboardPage: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch('/api/apply/history')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then((data) => {
+    const fetchApplications = async () => {
+      try {
+        // Fetch from the real backend API
+        const response = await fetch('http://localhost:8080/api/apply/history');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        
         setApplications(data);
-        const applied = data.filter((app: JobApplication) => app.status === 'APPLIED').length;
-        const pending = data.filter((app: JobApplication) => app.status === 'PENDING').length;
-        const interview = data.filter((app: JobApplication) => app.status === 'INTERVIEW').length;
+        
+        // Calculate stats from real data
+        const applied = data.filter((app: JobApplication) => 
+          app.status?.toUpperCase() === 'APPLIED'
+        ).length;
+        const pending = data.filter((app: JobApplication) => 
+          app.status?.toUpperCase() === 'PENDING'
+        ).length;
+        const interview = data.filter((app: JobApplication) => 
+          app.status?.toUpperCase() === 'INTERVIEW'
+        ).length;
+        
+        // Calculate weekly growth (applications in last 7 days vs previous 7 days)
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        
+        const thisWeek = data.filter((app: JobApplication) => 
+          new Date(app.appliedAt) >= oneWeekAgo
+        ).length;
+        const lastWeek = data.filter((app: JobApplication) => 
+          new Date(app.appliedAt) >= twoWeeksAgo && new Date(app.appliedAt) < oneWeekAgo
+        ).length;
+        
+        const growth = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : thisWeek > 0 ? 100 : 0;
+        
         setStats({
           totalApplications: data.length,
           appliedCount: applied,
           pendingCount: pending,
           interviewCount: interview,
-          weeklyGrowth: 12
+          weeklyGrowth: growth
         });
         setLoading(false);
-      })
-      .catch(() => {
-        // Demo data
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+        // Set empty state when no data or error
         setStats({
-          totalApplications: 247,
-          appliedCount: 156,
-          pendingCount: 58,
-          interviewCount: 33,
-          weeklyGrowth: 12
+          totalApplications: 0,
+          appliedCount: 0,
+          pendingCount: 0,
+          interviewCount: 0,
+          weeklyGrowth: 0
         });
+        setApplications([]);
         setLoading(false);
-      });
+      }
+    };
+    
+    fetchApplications();
   }, []);
 
-  const recentApplications = applications.length > 0 
-    ? [...applications]
-        .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
-        .slice(0, 5)
-    : [
-        { id: '1', companyName: 'Google', jobTitle: 'Software Engineer', status: 'interview', matchScore: 92, jobUrl: 'https://google.com', matchReason: '', appliedAt: '2024-01-15' },
-        { id: '2', companyName: 'Microsoft', jobTitle: 'Frontend Developer', status: 'applied', matchScore: 88, jobUrl: 'https://microsoft.com', matchReason: '', appliedAt: '2024-01-14' },
-        { id: '3', companyName: 'Amazon', jobTitle: 'Full Stack Engineer', status: 'pending', matchScore: 85, jobUrl: 'https://amazon.com', matchReason: '', appliedAt: '2024-01-13' },
-        { id: '4', companyName: 'Meta', jobTitle: 'React Developer', status: 'offered', matchScore: 95, jobUrl: 'https://meta.com', matchReason: '', appliedAt: '2024-01-12' },
-        { id: '5', companyName: 'Apple', jobTitle: 'iOS Engineer', status: 'applied', matchScore: 78, jobUrl: 'https://apple.com', matchReason: '', appliedAt: '2024-01-11' },
-      ];
+  const recentApplications = [...applications]
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+    .slice(0, 5);
+
+  // Generate activity data for bar chart based on real applications
+  const getActivityData = () => {
+    if (applications.length === 0) {
+      return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+    
+    // Get last 12 weeks of data
+    const weeks: number[] = [];
+    const now = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      
+      const count = applications.filter(app => {
+        const appDate = new Date(app.appliedAt);
+        return appDate >= weekStart && appDate < weekEnd;
+      }).length;
+      
+      weeks.push(count);
+    }
+    
+    // Normalize to percentages (max 100%)
+    const maxCount = Math.max(...weeks, 1);
+    return weeks.map(count => Math.round((count / maxCount) * 100) || 5);
+  };
+
+  const activityData = getActivityData();
 
   const handleNavClick = (nav: string, path: string) => {
     setActiveNav(nav);
@@ -283,7 +332,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
             <div className="line-chart-container">
-              {[35, 55, 40, 70, 45, 80, 60, 90, 55, 75, 85, 65].map((height, i) => (
+              {activityData.map((height, i) => (
                 <motion.div
                   key={i}
                   className="chart-bar"
@@ -314,19 +363,19 @@ const DashboardPage: React.FC = () => {
               <div className="chart-legend">
                 <div className="legend-item">
                   <span className="legend-dot green"></span>
-                  Applied ({Math.round(stats.appliedCount / stats.totalApplications * 100) || 40}%)
+                  Applied ({stats.totalApplications > 0 ? Math.round(stats.appliedCount / stats.totalApplications * 100) : 0}%)
                 </div>
                 <div className="legend-item">
                   <span className="legend-dot orange"></span>
-                  Pending ({Math.round(stats.pendingCount / stats.totalApplications * 100) || 20}%)
+                  Pending ({stats.totalApplications > 0 ? Math.round(stats.pendingCount / stats.totalApplications * 100) : 0}%)
                 </div>
                 <div className="legend-item">
                   <span className="legend-dot purple"></span>
-                  Interview ({Math.round(stats.interviewCount / stats.totalApplications * 100) || 15}%)
+                  Interview ({stats.totalApplications > 0 ? Math.round(stats.interviewCount / stats.totalApplications * 100) : 0}%)
                 </div>
                 <div className="legend-item">
                   <span className="legend-dot gray"></span>
-                  Other (25%)
+                  Other ({stats.totalApplications > 0 ? Math.round((stats.totalApplications - stats.appliedCount - stats.pendingCount - stats.interviewCount) / stats.totalApplications * 100) : 0}%)
                 </div>
               </div>
             </div>

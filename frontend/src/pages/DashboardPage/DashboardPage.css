@@ -6,9 +6,9 @@
   --bg-secondary: #1a1035;
   --sidebar-bg: #1e3a5f;
   --sidebar-hover: #2d4a6f;
-  --card-bg: #fef7eb;
-  --card-bg-alt: #f8f4ef;
-  --text-dark: #1a1a2e;
+  --card-bg: rgba(30, 58, 95, 0.5);
+  --card-bg-alt: rgba(30, 58, 95, 0.3);
+  --text-dark: #ffffff;
   --text-light: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.6);
   --accent-orange: #ff6b35;
@@ -25,7 +25,7 @@
   --bg-secondary: #ffffff;
   --sidebar-bg: #ffffff;
   --sidebar-hover: #f5f0eb;
-  --card-bg: #ffffff;
+  --card-bg: #fef7eb;
   --card-bg-alt: #f8f5f1;
   --text-dark: #1a1a2e;
   --text-light: #1a1a2e;
@@ -307,6 +307,7 @@ html, body, #root {
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+  border: 1px solid var(--border-light);
 }
 
 .dashboard-container.light .stat-card {
@@ -358,8 +359,12 @@ html, body, #root {
 
 .stat-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
   font-weight: 500;
+}
+
+.dashboard-container.light .stat-label {
+  color: #666;
 }
 
 .stat-change {
@@ -395,6 +400,11 @@ html, body, #root {
   background: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
+  border: 1px solid var(--border-light);
+}
+
+.dashboard-container.light .chart-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .chart-header {
@@ -418,13 +428,18 @@ html, body, #root {
 .chart-btn {
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid #e0d6c8;
+  border: 1px solid var(--border-light);
   background: transparent;
   font-size: 12px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.dashboard-container.light .chart-btn {
+  border: 1px solid #e0d6c8;
+  color: #666;
 }
 
 .chart-btn:hover,
@@ -507,6 +522,10 @@ html, body, #root {
 
 .donut-label {
   font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dashboard-container.light .donut-label {
   color: #666;
 }
 
@@ -522,6 +541,10 @@ html, body, #root {
   align-items: center;
   gap: 6px;
   font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dashboard-container.light .legend-item {
   color: #666;
 }
 
@@ -541,6 +564,11 @@ html, body, #root {
   background: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
+  border: 1px solid var(--border-light);
+}
+
+.dashboard-container.light .applications-section {
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .section-header {
@@ -583,9 +611,14 @@ html, body, #root {
   padding: 12px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #888;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dashboard-container.light .applications-table th {
+  color: #888;
   border-bottom: 1px solid #e0d6c8;
 }
 
@@ -593,6 +626,10 @@ html, body, #root {
   padding: 16px;
   font-size: 14px;
   color: var(--text-dark);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dashboard-container.light .applications-table td {
   border-bottom: 1px solid #f0e8dc;
 }
 
@@ -614,13 +651,18 @@ html, body, #root {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #f0e8dc, #e0d6c8);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #888;
+  color: var(--text-muted);
   font-size: 14px;
+}
+
+.dashboard-container.light .company-logo {
+  background: linear-gradient(135deg, #f0e8dc, #e0d6c8);
+  color: #888;
 }
 
 .company-name {
@@ -733,7 +775,7 @@ html, body, #root {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .empty-icon {
@@ -751,8 +793,12 @@ html, body, #root {
 
 .empty-description {
   font-size: 14px;
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 20px;
+}
+
+.dashboard-container.light .empty-description {
+  color: #888;
 }
 
 .empty-action {
