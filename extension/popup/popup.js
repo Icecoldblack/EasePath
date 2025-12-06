@@ -71,7 +71,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         syncBtn.classList.add('loading');
         syncBtn.textContent = 'Syncing...';
         
-        await tryAutoConnect();
+        // First check if we have a stored email
+        const { userEmail } = await chrome.storage.local.get(['userEmail']);
+        if (userEmail) {
+            await fetchAndStoreProfile(userEmail);
+        } else {
+            // Try to auto-connect from page
+            await tryAutoConnect();
+            
+            // If still not connected, check all EasePath tabs
+            const { userEmail: emailAfterTry } = await chrome.storage.local.get(['userEmail']);
+            if (!emailAfterTry) {
+                // Try to find an open EasePath tab and get user from there
+                const tabs = await chrome.tabs.query({});
+                for (const tab of tabs) {
+                    if (tab.url && (tab.url.includes('localhost:5173') || tab.url.includes('localhost:5174'))) {
+                        try {
+                            const response = await chrome.tabs.sendMessage(tab.id, { action: "get_user_from_page" });
+                            if (response && response.email) {
+                                await fetchAndStoreProfile(response.email);
+                                break;
+                            }
+                        } catch (e) {
+                            console.log('Could not get user from tab:', e);
+                        }
+                    }
+                }
+            }
+        }
         
         syncBtn.disabled = false;
         syncBtn.classList.remove('loading');
@@ -171,10 +198,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (storage.userEmail && storage.userProfile) {
             userProfile = storage.userProfile;
             showConnectedState();
+        } else if (storage.userEmail) {
+            // Have email but no profile, try to fetch it
+            await fetchAndStoreProfile(storage.userEmail);
         } else {
-            // Try to auto-connect
+            // Try to auto-connect from current tab or any EasePath tab
             await tryAutoConnect();
+            
+            // If still not connected, search all tabs for EasePath
+            const { userEmail } = await chrome.storage.local.get(['userEmail']);
+            if (!userEmail) {
+                await searchForEasePathUser();
+            }
         }
+    }
+    
+    async function searchForEasePathUser() {
+        try {
+            const tabs = await chrome.tabs.query({});
+            for (const tab of tabs) {
+                if (tab.url && (tab.url.includes('localhost:5173') || tab.url.includes('localhost:5174'))) {
+                    try {
+                        const response = await chrome.tabs.sendMessage(tab.id, { action: "get_user_from_page" });
+                        if (response && response.email) {
+                            await fetchAndStoreProfile(response.email);
+                            return true;
+                        }
+                    } catch (e) {
+                        // Tab might not have content script loaded
+                        console.log('Could not query tab:', tab.id);
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('Error searching for EasePath user:', e);
+        }
+        return false;
     }
 
     async function analyzeCurrentPage() {
@@ -348,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         manualDiv.innerHTML = `
             <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Or enter your email:</p>
             <div style="display: flex; gap: 8px;">
-                <input type="email" id="manual-email" placeholder="your@email.com">
+                <input type="email" id="manual-email" placeholder="your@email.com" style="flex: 1;">
                 <button id="manual-connect-btn" class="primary-btn" style="padding: 10px 16px; white-space: nowrap;">
                     Connect
                 </button>
@@ -357,21 +416,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         notConnected.appendChild(manualDiv);
         
-        document.getElementById('manual-connect-btn').addEventListener('click', async () => {
-            const email = document.getElementById('manual-email').value.trim();
+        const connectBtn = document.getElementById('manual-connect-btn');
+        const emailInput = document.getElementById('manual-email');
+        
+        connectBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
             if (email && email.includes('@')) {
+                connectBtn.disabled = true;
+                connectBtn.textContent = 'Connecting...';
                 await fetchAndStoreProfile(email);
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect';
             } else {
                 showMessage('Please enter a valid email address.', 'warning');
             }
         });
         
         // Allow enter key to submit
-        document.getElementById('manual-email').addEventListener('keypress', async (e) => {
+        emailInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 const email = e.target.value.trim();
                 if (email && email.includes('@')) {
+                    connectBtn.disabled = true;
+                    connectBtn.textContent = 'Connecting...';
                     await fetchAndStoreProfile(email);
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Connect';
                 }
             }
         });

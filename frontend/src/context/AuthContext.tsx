@@ -27,12 +27,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (userData: User) => {
     localStorage.setItem('user', JSON.stringify(userData));
+    // Also store email separately for extension sync
+    localStorage.setItem('easepath_user_email', userData.email);
     setIsAuthenticated(true);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('easepath_user_email');
     setIsAuthenticated(false);
     setUser(null);
   };
