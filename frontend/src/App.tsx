@@ -17,8 +17,8 @@ const AppContent: React.FC = () => {
   const { theme } = useTheme();
   const location = useLocation();
   
-  // Hide navbar on onboarding page, dashboard (has own sidebar), settings, auto-apply, jobs, resume
-  const hideNavbarPages = ['/onboarding', '/dashboard', '/settings', '/auto-apply', '/jobs', '/resume'];
+  // Hide navbar on onboarding page, dashboard (has own sidebar), settings, auto-apply, jobs, resume, and homepage
+  const hideNavbarPages = ['/onboarding', '/dashboard', '/settings', '/auto-apply', '/jobs', '/resume', '/'];
   const showNavbar = isAuthenticated && 
                      user?.onboardingCompleted && 
                      !hideNavbarPages.includes(location.pathname);

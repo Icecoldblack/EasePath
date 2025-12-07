@@ -16,7 +16,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*", "chrome-extension://*, https://www.easepath.app/")
+                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*", "chrome-extension://*", "https://www.easepath.app")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With")
                 .allowCredentials(true)
