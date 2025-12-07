@@ -157,16 +157,6 @@ const items = [
           <p className="login-footer-text"><b>Secure sign-in powered by Google OAuth.</b></p>
         </div>
       </div>
-
-      <p style={{
-        textAlign: "center",
-        color: "#6e6e6eff",
-        position: "fixed",
-        bottom: "0px",
-        fontFamily: "'Gill Sans', sans-serif"
-      }}>
-        <i>By Two Minorities</i>
-      </p>
     </>
   );
 };
