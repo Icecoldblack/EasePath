@@ -127,14 +127,14 @@ const JobsPage: React.FC = () => {
 
       console.log('Fetching jobs with params:', params.toString());
 
-      // Using JSearch API from RapidAPI
+      // Using Backend Proxy for JSearch API
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const response = await fetch(
-        `https://jsearch.p.rapidapi.com/search?${params.toString()}`,
+        `${API_URL}/api/jobs/search?${params.toString()}`,
         {
           method: 'GET',
           headers: {
-            'X-RapidAPI-Key': import.meta.env.VITE_RAPIDAPI_KEY || '',
-            'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+            'Content-Type': 'application/json',
           },
         }
       );
