@@ -299,8 +299,8 @@ public class ExtensionController {
      */
     @GetMapping("/suggest-answer")
     public ResponseEntity<Map<String, Object>> suggestAnswer(
-            @RequestParam String userEmail,
-            @RequestParam String question) {
+            @RequestParam(value = "userEmail") String userEmail,
+            @RequestParam(value = "question") String question) {
         
         Optional<LearnedAnswerDocument> answer = answerLearningService.findBestAnswer(userEmail, question);
         
@@ -323,7 +323,7 @@ public class ExtensionController {
      * Record that a suggested answer was used.
      */
     @PostMapping("/answer-used")
-    public ResponseEntity<Void> recordAnswerUsed(@RequestParam String answerId) {
+    public ResponseEntity<Void> recordAnswerUsed(@RequestParam(value = "answerId") String answerId) {
         answerLearningService.recordAnswerUsed(answerId);
         return ResponseEntity.ok().build();
     }
@@ -333,7 +333,7 @@ public class ExtensionController {
      */
     @PostMapping("/answer-edited")
     public ResponseEntity<Void> recordAnswerEdited(
-            @RequestParam String answerId,
+            @RequestParam(value = "answerId") String answerId,
             @RequestBody String newAnswer) {
         answerLearningService.recordAnswerEdited(answerId, newAnswer);
         return ResponseEntity.ok().build();
@@ -343,7 +343,7 @@ public class ExtensionController {
      * Get all learned answers for a user (for viewing/managing in dashboard).
      */
     @GetMapping("/learned-answers")
-    public ResponseEntity<List<LearnedAnswerDocument>> getLearnedAnswers(@RequestParam String userEmail) {
+    public ResponseEntity<List<LearnedAnswerDocument>> getLearnedAnswers(@RequestParam(value = "userEmail") String userEmail) {
         return ResponseEntity.ok(answerLearningService.getUserAnswers(userEmail));
     }
 
