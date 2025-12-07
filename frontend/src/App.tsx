@@ -26,7 +26,7 @@ const AppContent: React.FC = () => {
   return (
     <div className={`app-root ${theme}`} data-theme={theme}>
       {showNavbar && <Navbar />}
-      <main className="app-main" data-authenticated={isAuthenticated}>
+      <main className="app-main" data-authenticated={isAuthenticated && location.pathname !== '/'}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route element={<ProtectedRoute />}>
