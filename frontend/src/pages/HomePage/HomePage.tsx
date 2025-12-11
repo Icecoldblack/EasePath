@@ -23,7 +23,12 @@ const HomePage: React.FC = () => {
         let onboardingCompleted = false;
         try {
           const profileResponse = await fetch(
-            `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(decoded.email)}`
+            `http://localhost:8080/api/extension/profile`,
+            {
+              headers: {
+                'Authorization': `Bearer ${response.credential}`
+              }
+            }
           );
           if (profileResponse.ok) {
             const profile = await profileResponse.json();
@@ -39,7 +44,7 @@ const HomePage: React.FC = () => {
           picture: decoded.picture,
           googleId: decoded.sub,
           onboardingCompleted: onboardingCompleted
-        });
+        }, response.credential); // Pass the JWT token
         
         // Navigate based on onboarding status
         if (onboardingCompleted) {

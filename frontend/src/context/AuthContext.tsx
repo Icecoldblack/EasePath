@@ -11,9 +11,10 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (user: User) => void;
+  login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,8 +26,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
 
-  const login = (userData: User) => {
+  const login = (userData: User, token: string) => {
     localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('auth_token', token);
     // Also store email separately for extension sync
     localStorage.setItem('easepath_user_email', userData.email);
     setIsAuthenticated(true);
@@ -35,6 +37,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
     localStorage.removeItem('easepath_user_email');
     setIsAuthenticated(false);
     setUser(null);
@@ -48,8 +51,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const getToken = (): string | null => {
+    return localStorage.getItem('auth_token');
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser, getToken }}>
       {children}
     </AuthContext.Provider>
   );

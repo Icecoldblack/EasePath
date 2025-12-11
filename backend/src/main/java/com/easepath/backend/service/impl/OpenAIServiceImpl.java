@@ -55,7 +55,7 @@ public class OpenAIServiceImpl implements OpenAIService {
             UserProfileDocument profile,
             String platformName) {
         
-        Map<String, String> mapping = new HashMap<>();
+        Map<String, String> mapping;
         
         if (!isAvailable()) {
             log.warn("OpenAI API key not configured - using fallback mapping");

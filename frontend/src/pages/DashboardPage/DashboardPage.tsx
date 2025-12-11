@@ -44,10 +44,37 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        // Fetch from the real backend API
-        const response = await fetch(`${API_BASE_URL}/api/apply/history`);
-        if (!response.ok) throw new Error('Failed to fetch');
+        // Get auth token from localStorage
+        const token = localStorage.getItem('auth_token');
+        console.log('[DEBUG] Has token:', !!token);
+        if (!token) {
+          console.error('No authentication token found');
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch from the real backend API with Bearer token
+        console.log('[DEBUG] Fetching from:', 'http://localhost:8080/api/apply/history');
+        const response = await fetch('http://localhost:8080/api/apply/history', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        console.log('[DEBUG] Response status:', response.status, response.ok);
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.error('Unauthorized: Please log in');
+          }
+          const errorText = await response.text();
+          console.error('[DEBUG] Error response:', errorText);
+          throw new Error('Failed to fetch');
+        }
+        
         const data = await response.json();
+        console.log('[DEBUG] Received data length:', data.length);
+        console.log('[DEBUG] First 3 items:', data.slice(0, 3));
         
         setApplications(data);
         

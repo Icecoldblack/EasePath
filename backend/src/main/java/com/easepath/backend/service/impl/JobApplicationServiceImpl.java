@@ -74,7 +74,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         result.setRequestedApplications(applicationCount);
 
         // Save or update the resume used for this application session
-        String resumeId = null;
         if (StringUtils.hasText(request.getResumeSummary()) || StringUtils.hasText(request.getResumeFileName())) {
             try {
                 ResumeDto resumeDto = new ResumeDto();
@@ -110,7 +109,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 resumeService.deleteAllResumes();
 
                 ResumeDto savedResume = resumeService.createResume(resumeDto);
-                resumeId = savedResume.getId();
+                String resumeId = savedResume.getId();
                 LOGGER.info("Persisted resume for application session: {}", resumeId);
             } catch (Exception e) {
                 LOGGER.error("Failed to persist resume during application session", e);
@@ -161,7 +160,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 LOGGER.warn("No job links found on the provided URL: {}", jobBoardUrl);
                 result.getMatches().add(new JobMatchResult(jobBoardUrl, "N/A", 
                     MatchStatus.ERROR, "No job links found on this page. Check the URL or the site structure.", 0.0));
-                saveApplicationAttempt(jobBoardUrl, "N/A", MatchStatus.ERROR.name(), 0.0, "No job links found.");
+                saveApplicationAttempt(jobBoardUrl, "N/A", MatchStatus.ERROR.name(), 0.0, "No job links found.", request.getUserEmail());
             }
 
             // Limit the scope of processing to avoid scanning the "whole website"
@@ -195,7 +194,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     result.getMatches().add(new JobMatchResult(jobUrl, jobSnippet,
                         MatchStatus.SKIPPED_LOW_SCORE, scoreResult.reasoning(), scoreResult.score()));
                     result.setSkippedLowScore(result.getSkippedLowScore() + 1);
-                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_LOW_SCORE.name(), scoreResult.score(), scoreResult.reasoning());
+                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_LOW_SCORE.name(), scoreResult.score(), scoreResult.reasoning(), request.getUserEmail());
                     continue;
                 }
 
@@ -205,7 +204,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     result.getMatches().add(new JobMatchResult(jobUrl, jobSnippet,
                         MatchStatus.SKIPPED_PROMPT, "Writing prompt detected; emailed user", scoreResult.score()));
                     result.setSkippedPrompts(result.getSkippedPrompts() + 1);
-                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_PROMPT.name(), scoreResult.score(), "Writing prompt detected; emailed user");
+                    saveApplicationAttempt(jobUrl, jobSnippet, MatchStatus.SKIPPED_PROMPT.name(), scoreResult.score(), "Writing prompt detected; emailed user", request.getUserEmail());
                 } else {
                     // Add to candidates list instead of applying immediately
                     candidates.add(new JobMatchResult(jobUrl, jobSnippet,
@@ -224,7 +223,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 
                 LOGGER.info("Selected top candidate: {} (Score: {})", candidate.getTitle(), candidate.getScore());
                 result.getMatches().add(candidate);
-                saveApplicationAttempt(candidate.getJobUrl(), candidate.getTitle(), MatchStatus.PENDING.name(), candidate.getScore(), candidate.getReason());
+                saveApplicationAttempt(candidate.getJobUrl(), candidate.getTitle(), MatchStatus.PENDING.name(), candidate.getScore(), candidate.getReason(), request.getUserEmail());
                 appliedCount++;
             }
             
@@ -233,23 +232,27 @@ public class JobApplicationServiceImpl implements JobApplicationService {
             LOGGER.error("HTTP error fetching job board: status={} url={}", e.getStatusCode(), e.getUrl());
             result.getMatches().add(new JobMatchResult(jobBoardUrl, jobTitle,
                 MatchStatus.ERROR, "HTTP error fetching URL (" + e.getStatusCode() + "): " + e.getUrl(), 0.0));
-            saveApplicationAttempt(jobBoardUrl, jobTitle, MatchStatus.ERROR.name(), 0.0, "HTTP error: " + e.getStatusCode());
+            saveApplicationAttempt(jobBoardUrl, jobTitle, MatchStatus.ERROR.name(), 0.0, "HTTP error: " + e.getStatusCode(), request.getUserEmail());
         } catch (IOException e) {
             LOGGER.error("Failed to scrape job board: {}", e.getMessage());
             result.getMatches().add(new JobMatchResult(jobBoardUrl, jobTitle,
                 MatchStatus.ERROR, "Failed to scrape job board: " + e.getMessage(), 0.0));
-            saveApplicationAttempt(jobBoardUrl, jobTitle, MatchStatus.ERROR.name(), 0.0, "Failed to scrape: " + e.getMessage());
+            saveApplicationAttempt(jobBoardUrl, jobTitle, MatchStatus.ERROR.name(), 0.0, "Failed to scrape: " + e.getMessage(), request.getUserEmail());
         }
 
         return result;
     }
 
     @Override
-    public java.util.List<JobApplicationDocument> getApplicationHistory() {
-        return jobApplicationRepository.findAll();
+    public java.util.List<JobApplicationDocument> getApplicationHistory(String userEmail) {
+        if (userEmail == null || userEmail.trim().isEmpty()) {
+            LOGGER.warn("Attempted to fetch application history without user email");
+            return new ArrayList<>();
+        }
+        return jobApplicationRepository.findByUserEmail(userEmail);
     }
 
-    private void saveApplicationAttempt(String jobUrl, String jobTitle, String status, double score, String reason) {
+    private void saveApplicationAttempt(String jobUrl, String jobTitle, String status, double score, String reason, String userEmail) {
         try {
             JobApplicationDocument doc = new JobApplicationDocument();
             doc.setJobUrl(jobUrl);
@@ -258,6 +261,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
             doc.setMatchScore(score);
             doc.setMatchReason(reason);
             doc.setAppliedAt(LocalDateTime.now());
+            doc.setUserEmail(userEmail); // Associate application with user
             jobApplicationRepository.save(doc);
         } catch (Exception e) {
             LOGGER.error("Failed to save job application attempt", e);

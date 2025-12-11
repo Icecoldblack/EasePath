@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
 
 import com.easepath.backend.dto.AutofillRequest;
 import com.easepath.backend.dto.AutofillResponse;
@@ -28,6 +29,8 @@ import com.easepath.backend.repository.ResumeRepository;
 import com.easepath.backend.repository.UserProfileRepository;
 import com.easepath.backend.service.AnswerLearningService;
 import com.easepath.backend.service.FormMappingService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * API endpoints for the browser extension.
@@ -173,10 +176,19 @@ public class ExtensionController {
 
     /**
      * Get user profile for the extension.
+     * SECURITY: Requires authentication and users can only access their own profile.
      */
     @GetMapping("/profile")
-    public ResponseEntity<UserProfileDto> getProfile(@RequestParam(value = "email") String email) {
-        return userProfileRepository.findByEmail(email)
+    public ResponseEntity<?> getProfile(HttpServletRequest request) {
+        
+        // Get authenticated user from request attribute (set by AuthenticationInterceptor)
+        com.easepath.backend.model.User currentUser = (com.easepath.backend.model.User) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Authentication required"));
+        }
+        
+        return userProfileRepository.findByEmail(currentUser.getEmail())
             .map(this::toDto)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
@@ -184,9 +196,26 @@ public class ExtensionController {
 
     /**
      * Save/update user profile from extension or dashboard.
+     * SECURITY: Requires authentication and users can only update their own profile.
      */
     @PutMapping("/profile")
-    public ResponseEntity<UserProfileDto> saveProfile(@RequestBody UserProfileDto dto) {
+    public ResponseEntity<?> saveProfile(
+            @RequestBody UserProfileDto dto,
+            HttpServletRequest request) {
+        
+        // Get authenticated user from request attribute (set by AuthenticationInterceptor)
+        com.easepath.backend.model.User currentUser = (com.easepath.backend.model.User) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Authentication required"));
+        }
+        
+        // SECURITY CHECK: Users can only update their own profile
+        if (!dto.getEmail().equalsIgnoreCase(currentUser.getEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Access denied", "message", "You can only update your own profile"));
+        }
+        
         log.info("Saving profile for user: {}", dto.getEmail());
         
         UserProfileDocument doc = userProfileRepository.findByEmail(dto.getEmail())

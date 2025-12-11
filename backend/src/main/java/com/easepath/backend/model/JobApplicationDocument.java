@@ -17,6 +17,7 @@ public class JobApplicationDocument {
     private String matchReason;
     private LocalDateTime appliedAt;
     private String resumeId;
+    private String userEmail; // Track which user made this application
 
     public String getId() {
         return id;
@@ -88,5 +89,13 @@ public class JobApplicationDocument {
 
     public void setResumeId(String resumeId) {
         this.resumeId = resumeId;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }
