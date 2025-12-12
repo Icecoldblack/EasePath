@@ -1,13 +1,13 @@
 package com.easepath.backend.service;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.easepath.backend.model.User;
-
-import java.util.Base64;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class GoogleAuthService {
