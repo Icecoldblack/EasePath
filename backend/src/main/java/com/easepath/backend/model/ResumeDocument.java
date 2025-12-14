@@ -17,12 +17,19 @@ public class ResumeDocument {
     private String parsedText;
     private List<String> keywords;
     private Instant createdAt;
-    
+
     // File storage fields
     private String fileName;
     private String contentType;
     private String fileData; // Base64 encoded file content
     private Long fileSize;
+
+    // Cached AI score fields (to avoid calling OpenAI on every page load)
+    private Integer scoreOverall;
+    private Integer scoreProfile;
+    private Integer scoreKeywords;
+    private Integer scoreAts;
+    private String scoreMessage;
 
     public ResumeDocument() {
         // Default constructor for Mongo mapping
@@ -94,7 +101,7 @@ public class ResumeDocument {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
-    
+
     // File storage getters/setters
     public String getFileName() {
         return fileName;
@@ -126,5 +133,45 @@ public class ResumeDocument {
 
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public Integer getScoreOverall() {
+        return scoreOverall;
+    }
+
+    public void setScoreOverall(Integer scoreOverall) {
+        this.scoreOverall = scoreOverall;
+    }
+
+    public Integer getScoreProfile() {
+        return scoreProfile;
+    }
+
+    public void setScoreProfile(Integer scoreProfile) {
+        this.scoreProfile = scoreProfile;
+    }
+
+    public Integer getScoreKeywords() {
+        return scoreKeywords;
+    }
+
+    public void setScoreKeywords(Integer scoreKeywords) {
+        this.scoreKeywords = scoreKeywords;
+    }
+
+    public Integer getScoreAts() {
+        return scoreAts;
+    }
+
+    public void setScoreAts(Integer scoreAts) {
+        this.scoreAts = scoreAts;
+    }
+
+    public String getScoreMessage() {
+        return scoreMessage;
+    }
+
+    public void setScoreMessage(String scoreMessage) {
+        this.scoreMessage = scoreMessage;
     }
 }

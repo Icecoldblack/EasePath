@@ -33,6 +33,7 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState('Week');
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,
     appliedCount: 0,
@@ -52,34 +53,34 @@ const DashboardPage: React.FC = () => {
         });
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        
+
         setApplications(data);
-        
+
         // Calculate stats from real data
-        const applied = data.filter((app: JobApplication) => 
+        const applied = data.filter((app: JobApplication) =>
           app.status?.toUpperCase() === 'APPLIED'
         ).length;
-        const pending = data.filter((app: JobApplication) => 
+        const pending = data.filter((app: JobApplication) =>
           app.status?.toUpperCase() === 'PENDING'
         ).length;
-        const interview = data.filter((app: JobApplication) => 
+        const interview = data.filter((app: JobApplication) =>
           app.status?.toUpperCase() === 'INTERVIEW'
         ).length;
-        
+
         // Calculate weekly growth (applications in last 7 days vs previous 7 days)
         const now = new Date();
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-        
-        const thisWeek = data.filter((app: JobApplication) => 
+
+        const thisWeek = data.filter((app: JobApplication) =>
           new Date(app.appliedAt) >= oneWeekAgo
         ).length;
-        const lastWeek = data.filter((app: JobApplication) => 
+        const lastWeek = data.filter((app: JobApplication) =>
           new Date(app.appliedAt) >= twoWeeksAgo && new Date(app.appliedAt) < oneWeekAgo
         ).length;
-        
+
         const growth = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : thisWeek > 0 ? 100 : 0;
-        
+
         setStats({
           totalApplications: data.length,
           appliedCount: applied,
@@ -102,7 +103,7 @@ const DashboardPage: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchApplications();
   }, []);
 
@@ -113,31 +114,32 @@ const DashboardPage: React.FC = () => {
   // Generate activity data for bar chart based on real applications
   const getActivityData = () => {
     if (applications.length === 0) {
-      return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      return [0, 0, 0, 0, 0, 0, 0];
     }
-    
-    // Get last 12 weeks of data
-    const weeks: number[] = [];
+
+    // Get last 7 days of data
+    const days: number[] = [];
     const now = new Date();
-    
-    for (let i = 11; i >= 0; i--) {
-      const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
-      const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      
+
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(now.getTime() - (i + 1) * 24 * 60 * 60 * 1000);
+      const dayEnd = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+
       const count = applications.filter(app => {
         const appDate = new Date(app.appliedAt);
-        return appDate >= weekStart && appDate < weekEnd;
+        return appDate >= dayStart && appDate < dayEnd;
       }).length;
-      
-      weeks.push(count);
+
+      days.push(count);
     }
-    
+
     // Normalize to percentages (max 100%)
-    const maxCount = Math.max(...weeks, 1);
-    return weeks.map(count => Math.round((count / maxCount) * 100) || 5);
+    const maxCount = Math.max(...days, 1);
+    return days.map(count => Math.round((count / maxCount) * 100) || 10);
   };
 
   const activityData = getActivityData();
+  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const handleNavClick = (nav: string, path: string) => {
     setActiveNav(nav);
@@ -160,7 +162,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div className={`dashboard-container ${theme} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar */}
-      <motion.aside 
+      <motion.aside
         className={`dashboard-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
         initial={{ x: -260 }}
         animate={{ x: 0, width: sidebarCollapsed ? 70 : 260 }}
@@ -172,12 +174,12 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Collapse Toggle */}
-        <button 
+        <button
           className="sidebar-toggle"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {sidebarCollapsed ? (
               <polyline points="9 18 15 12 9 6" />
             ) : (
@@ -187,53 +189,81 @@ const DashboardPage: React.FC = () => {
         </button>
 
         <nav className="sidebar-nav">
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
             onClick={() => handleNavClick('dashboard', '/dashboard')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Dashboard</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'jobs' ? 'active' : ''}`}
             onClick={() => handleNavClick('jobs', '/jobs')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">💼</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Find Jobs</span>}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`}
             onClick={() => handleNavClick('auto-apply', '/auto-apply')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">🚀</span>
-            {!sidebarCollapsed && <span className="nav-text">Auto Apply</span>}
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </span>
+            {!sidebarCollapsed && <span className="nav-text">My Applications</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'resume' ? 'active' : ''}`}
             onClick={() => handleNavClick('resume', '/resume')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">📄</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Resume</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'settings' ? 'active' : ''}`}
             onClick={() => handleNavClick('settings', '/settings')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">⚙️</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Settings</span>}
           </motion.div>
         </nav>
@@ -255,7 +285,40 @@ const DashboardPage: React.FC = () => {
 
       {/* Main Content */}
       <main className={`dashboard-main ${sidebarCollapsed ? 'expanded' : ''}`}>
-        <motion.div 
+        {/* Top Bar with Search */}
+        <div className="top-bar">
+          <div className="search-bar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" placeholder="Search jobs, companies..." />
+          </div>
+          <div className="top-bar-actions">
+            <button className="icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            </button>
+            <button className="icon-btn notification">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              <span className="notification-dot"></span>
+            </button>
+          </div>
+        </div>
+
+        <motion.div
           className="dashboard-header"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -267,96 +330,130 @@ const DashboardPage: React.FC = () => {
 
         {/* Stats Grid */}
         <div className="stats-grid">
-          <motion.div 
+          <motion.div
             className="stat-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
             whileHover={{ y: -4 }}
           >
-            <div className="stat-icon orange">📊</div>
+            <div className="stat-icon orange">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
             <div className="stat-value">{stats.totalApplications}</div>
             <div className="stat-label">Total Applications</div>
             <span className="stat-change positive">+{stats.weeklyGrowth}% this week</span>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="stat-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
             whileHover={{ y: -4 }}
           >
-            <div className="stat-icon green">✓</div>
+            <div className="stat-icon green">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
             <div className="stat-value">{stats.appliedCount}</div>
             <div className="stat-label">Applied</div>
-            <span className="stat-change positive">+8% this week</span>
+            <span className="stat-change positive">+0% this week</span>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="stat-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
             whileHover={{ y: -4 }}
           >
-            <div className="stat-icon cyan">⏳</div>
+            <div className="stat-icon cyan">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
             <div className="stat-value">{stats.pendingCount}</div>
             <div className="stat-label">Pending</div>
-            <span className="stat-change negative">-3% this week</span>
+            <span className="stat-change positive">+0% this week</span>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="stat-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
             whileHover={{ y: -4 }}
           >
-            <div className="stat-icon purple">🎯</div>
+            <div className="stat-icon purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
+            </div>
             <div className="stat-value">{stats.interviewCount}</div>
             <div className="stat-label">Interviews</div>
-            <span className="stat-change positive">+15% this week</span>
+            <span className="stat-change positive">+0% this week</span>
           </motion.div>
         </div>
 
         {/* Charts Section */}
         <div className="charts-section">
-          <motion.div 
+          <motion.div
             className="chart-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}
           >
             <div className="chart-header">
-              <h3 className="chart-title">Application Activity</h3>
+              <div>
+                <h3 className="chart-title">Application Activity</h3>
+                <p className="chart-subtitle">Track your weekly progress</p>
+              </div>
               <div className="chart-actions">
-                <button className="chart-btn active">Week</button>
-                <button className="chart-btn">Month</button>
-                <button className="chart-btn">Year</button>
+                {['Week', 'Month', 'Year'].map((period) => (
+                  <button
+                    key={period}
+                    className={`chart-btn ${chartPeriod === period ? 'active' : ''}`}
+                    onClick={() => setChartPeriod(period)}
+                  >
+                    {period}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="line-chart-container">
               {activityData.map((height, i) => (
-                <motion.div
-                  key={i}
-                  className="chart-bar"
-                  initial={{ height: 0 }}
-                  animate={{ height: `${height}%` }}
-                  transition={{ duration: 0.5, delay: 0.6 + i * 0.05 }}
-                />
+                <div key={i} className="chart-bar-wrapper">
+                  <motion.div
+                    className="chart-bar"
+                    initial={{ height: 0 }}
+                    animate={{ height: `${height}%` }}
+                    transition={{ duration: 0.5, delay: 0.6 + i * 0.05 }}
+                  />
+                  <span className="chart-bar-label">{dayLabels[i]}</span>
+                </div>
               ))}
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="chart-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.6 }}
           >
             <div className="chart-header">
-              <h3 className="chart-title">Status Distribution</h3>
+              <div>
+                <h3 className="chart-title">Status Distribution</h3>
+                <p className="chart-subtitle">Current application statuses</p>
+              </div>
             </div>
             <div className="donut-chart-container">
               <div className="donut-chart">
@@ -367,20 +464,20 @@ const DashboardPage: React.FC = () => {
               </div>
               <div className="chart-legend">
                 <div className="legend-item">
-                  <span className="legend-dot green"></span>
-                  Applied ({stats.totalApplications > 0 ? Math.round(stats.appliedCount / stats.totalApplications * 100) : 0}%)
+                  <span><span className="legend-dot green"></span>Applied</span>
+                  <span className="legend-value">{stats.totalApplications > 0 ? Math.round(stats.appliedCount / stats.totalApplications * 100) : 0}%</span>
                 </div>
                 <div className="legend-item">
-                  <span className="legend-dot orange"></span>
-                  Pending ({stats.totalApplications > 0 ? Math.round(stats.pendingCount / stats.totalApplications * 100) : 0}%)
+                  <span><span className="legend-dot orange"></span>Pending</span>
+                  <span className="legend-value">{stats.totalApplications > 0 ? Math.round(stats.pendingCount / stats.totalApplications * 100) : 0}%</span>
                 </div>
                 <div className="legend-item">
-                  <span className="legend-dot purple"></span>
-                  Interview ({stats.totalApplications > 0 ? Math.round(stats.interviewCount / stats.totalApplications * 100) : 0}%)
+                  <span><span className="legend-dot purple"></span>Interview</span>
+                  <span className="legend-value">{stats.totalApplications > 0 ? Math.round(stats.interviewCount / stats.totalApplications * 100) : 0}%</span>
                 </div>
                 <div className="legend-item">
-                  <span className="legend-dot gray"></span>
-                  Other ({stats.totalApplications > 0 ? Math.round((stats.totalApplications - stats.appliedCount - stats.pendingCount - stats.interviewCount) / stats.totalApplications * 100) : 0}%)
+                  <span><span className="legend-dot gray"></span>Other</span>
+                  <span className="legend-value">{stats.totalApplications > 0 ? Math.round((stats.totalApplications - stats.appliedCount - stats.pendingCount - stats.interviewCount) / stats.totalApplications * 100) : 0}%</span>
                 </div>
               </div>
             </div>
@@ -388,36 +485,40 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Recent Applications */}
-        <motion.div 
+        <motion.div
           className="applications-section"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.7 }}
         >
           <div className="section-header">
-            <h3 className="section-title">Recent Applications</h3>
-            <motion.button 
+            <div className="section-header-left">
+              <h3 className="section-title">Recent Applications</h3>
+              <p className="section-subtitle">{applications.length} total applications</p>
+            </div>
+            <motion.button
               className="view-all-btn"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/auto-apply')}
             >
-              View All
+              <span className="view-all-icon">+</span> View All
             </motion.button>
           </div>
 
           <table className="applications-table">
             <thead>
               <tr>
-                <th>Company</th>
-                <th>Position</th>
+                <th className="sortable">Company <span className="sort-arrow">↕</span></th>
+                <th className="sortable">Position <span className="sort-arrow">↕</span></th>
                 <th>Status</th>
-                <th>Match Score</th>
-                <th>Date</th>
+                <th className="sortable">Match Score <span className="sort-arrow">↕</span></th>
+                <th className="sortable">Date <span className="sort-arrow">↕</span></th>
               </tr>
             </thead>
             <tbody>
               {recentApplications.map((app, index) => (
-                <motion.tr 
+                <motion.tr
                   key={app.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -438,11 +539,19 @@ const DashboardPage: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    <span className={`match-score ${app.matchScore >= 85 ? 'high' : app.matchScore >= 70 ? 'medium' : 'low'}`}>
-                      {app.matchScore}%
-                    </span>
+                    <div className="match-score-cell">
+                      <div className="match-progress-bar">
+                        <motion.div
+                          className={`match-progress-fill ${app.matchScore >= 85 ? 'high' : app.matchScore >= 70 ? 'medium' : 'low'}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${app.matchScore}%` }}
+                          transition={{ duration: 0.5, delay: 0.9 + index * 0.1 }}
+                        />
+                      </div>
+                      <span className="match-percentage">{app.matchScore}%</span>
+                    </div>
                   </td>
-                  <td>{new Date(app.appliedAt).toLocaleDateString()}</td>
+                  <td>{new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                 </motion.tr>
               ))}
             </tbody>
@@ -450,10 +559,15 @@ const DashboardPage: React.FC = () => {
 
           {recentApplications.length === 0 && (
             <div className="empty-state">
-              <div className="empty-icon">📋</div>
+              <div className="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </div>
               <h4 className="empty-title">No applications yet</h4>
               <p className="empty-description">Start applying to jobs to see your progress here</p>
-              <motion.button 
+              <motion.button
                 className="empty-action"
                 onClick={() => navigate('/auto-apply')}
                 whileHover={{ scale: 1.02 }}
@@ -467,7 +581,7 @@ const DashboardPage: React.FC = () => {
       </main>
 
       {/* Quick Action FAB */}
-      <motion.button 
+      <motion.button
         className="quick-actions-fab"
         onClick={() => navigate('/auto-apply')}
         initial={{ scale: 0 }}
@@ -476,7 +590,10 @@ const DashboardPage: React.FC = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
-        +
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
       </motion.button>
     </div>
   );

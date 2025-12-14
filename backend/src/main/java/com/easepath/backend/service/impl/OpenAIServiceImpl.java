@@ -54,9 +54,9 @@ public class OpenAIServiceImpl implements OpenAIService {
             List<FormFieldInfo> fields,
             UserProfileDocument profile,
             String platformName) {
-        
+
         Map<String, String> mapping = new HashMap<>();
-        
+
         if (!isAvailable()) {
             log.warn("OpenAI API key not configured - using fallback mapping");
             return fallbackMapping(fields, profile);
@@ -65,63 +65,62 @@ public class OpenAIServiceImpl implements OpenAIService {
         try {
             // Build the prompt for GPT
             String prompt = buildMappingPrompt(fields, profile);
-            
+
             // Call OpenAI API
             String response = callOpenAI(prompt);
-            
+
             // Parse the response
             mapping = parseFieldMappingResponse(response, fields, profile);
-            
+
             log.info("OpenAI mapped {} fields for platform {}", mapping.size(), platformName);
-            
+
         } catch (Exception e) {
             log.error("OpenAI API error, using fallback: {}", e.getMessage());
             return fallbackMapping(fields, profile);
         }
-        
+
         return mapping;
     }
 
     @Override
-    public String generateAnswer(String question, UserProfileDocument profile, 
-                                 String jobTitle, String company) {
+    public String generateAnswer(String question, UserProfileDocument profile,
+            String jobTitle, String company) {
         if (!isAvailable()) {
             return null;
         }
 
         try {
             String prompt = String.format("""
-                You are helping a job applicant answer application questions.
-                
-                Applicant Profile:
-                - Name: %s %s
-                - Experience: %s years
-                - Desired Role: %s
-                - Education: %s in %s from %s
-                
-                Job Details:
-                - Position: %s
-                - Company: %s
-                
-                Question: %s
-                
-                Write a professional, concise answer (2-3 sentences) that:
-                1. Is specific and authentic
-                2. Highlights relevant experience
-                3. Shows enthusiasm for the role
-                
-                Answer:""",
-                profile.getFirstName(), profile.getLastName(),
-                profile.getYearsOfExperience(),
-                profile.getDesiredJobTitle(),
-                profile.getHighestDegree(), profile.getMajor(), profile.getUniversity(),
-                jobTitle != null ? jobTitle : "the position",
-                company != null ? company : "the company",
-                question
-            );
+                    You are helping a job applicant answer application questions.
+
+                    Applicant Profile:
+                    - Name: %s %s
+                    - Experience: %s years
+                    - Desired Role: %s
+                    - Education: %s in %s from %s
+
+                    Job Details:
+                    - Position: %s
+                    - Company: %s
+
+                    Question: %s
+
+                    Write a professional, concise answer (2-3 sentences) that:
+                    1. Is specific and authentic
+                    2. Highlights relevant experience
+                    3. Shows enthusiasm for the role
+
+                    Answer:""",
+                    profile.getFirstName(), profile.getLastName(),
+                    profile.getYearsOfExperience(),
+                    profile.getDesiredJobTitle(),
+                    profile.getHighestDegree(), profile.getMajor(), profile.getUniversity(),
+                    jobTitle != null ? jobTitle : "the position",
+                    company != null ? company : "the company",
+                    question);
 
             return callOpenAI(prompt);
-            
+
         } catch (Exception e) {
             log.error("Failed to generate answer: {}", e.getMessage());
             return null;
@@ -130,9 +129,10 @@ public class OpenAIServiceImpl implements OpenAIService {
 
     @Override
     public void learnFromAnswer(String question, String userAnswer, String userEmail) {
-        // Store for future reference - the actual learning happens in AnswerLearningService
-        log.info("Learning from answer for user {}: Q='{}...'", 
-            userEmail, question.substring(0, Math.min(50, question.length())));
+        // Store for future reference - the actual learning happens in
+        // AnswerLearningService
+        log.info("Learning from answer for user {}: Q='{}...'",
+                userEmail, question.substring(0, Math.min(50, question.length())));
     }
 
     /**
@@ -140,9 +140,9 @@ public class OpenAIServiceImpl implements OpenAIService {
      */
     private String buildMappingPrompt(List<FormFieldInfo> fields, UserProfileDocument profile) {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append("You are a form-filling assistant. Map these form fields to the user's data.\n\n");
-        
+
         sb.append("USER DATA:\n");
         sb.append("firstName: ").append(profile.getFirstName()).append("\n");
         sb.append("lastName: ").append(profile.getLastName()).append("\n");
@@ -170,18 +170,18 @@ public class OpenAIServiceImpl implements OpenAIService {
         sb.append("gender: ").append(profile.getGender()).append("\n");
         sb.append("ethnicity: ").append(profile.getEthnicity()).append("\n");
         sb.append("availableStartDate: ").append(profile.getAvailableStartDate()).append("\n");
-        
+
         sb.append("\nFORM FIELDS:\n");
         for (int i = 0; i < fields.size(); i++) {
             FormFieldInfo f = fields.get(i);
             sb.append(String.format("%d. id='%s', name='%s', label='%s', placeholder='%s', type='%s'\n",
-                i + 1, f.getId(), f.getName(), f.getLabel(), f.getPlaceholder(), f.getType()));
+                    i + 1, f.getId(), f.getName(), f.getLabel(), f.getPlaceholder(), f.getType()));
         }
-        
+
         sb.append("\nRESPOND WITH JSON ONLY - map field id/name to the value from user data.");
         sb.append("\nFormat: {\"fieldIdOrName\": \"value\", ...}");
         sb.append("\nOnly include fields you can confidently fill. Skip unknown fields.");
-        
+
         return sb.toString();
     }
 
@@ -191,7 +191,7 @@ public class OpenAIServiceImpl implements OpenAIService {
     private String callOpenAI(String prompt) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
-        
+
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));
         requestBody.put("messages", messages);
@@ -199,13 +199,13 @@ public class OpenAIServiceImpl implements OpenAIService {
         requestBody.put("max_tokens", 1000);
 
         String responseBody = webClient.post()
-            .uri(endpoint)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .bodyValue(requestBody)
-            .retrieve()
-            .bodyToMono(String.class)
-            .block();
+                .uri(endpoint)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
 
         // Parse the response to extract the content
         try {
@@ -222,9 +222,9 @@ public class OpenAIServiceImpl implements OpenAIService {
      */
     private Map<String, String> parseFieldMappingResponse(
             String response, List<FormFieldInfo> fields, UserProfileDocument profile) {
-        
+
         Map<String, String> result = new HashMap<>();
-        
+
         try {
             // Try to parse as JSON
             String jsonStr = response.trim();
@@ -232,7 +232,7 @@ public class OpenAIServiceImpl implements OpenAIService {
             if (jsonStr.startsWith("```")) {
                 jsonStr = jsonStr.replaceAll("```json\\s*", "").replaceAll("```\\s*", "");
             }
-            
+
             JsonNode mapping = objectMapper.readTree(jsonStr);
             mapping.fields().forEachRemaining(entry -> {
                 String value = entry.getValue().asText();
@@ -240,12 +240,12 @@ public class OpenAIServiceImpl implements OpenAIService {
                     result.put(entry.getKey(), value);
                 }
             });
-            
+
         } catch (Exception e) {
             log.warn("Could not parse GPT response as JSON, using fallback");
             return fallbackMapping(fields, profile);
         }
-        
+
         return result;
     }
 
@@ -254,24 +254,26 @@ public class OpenAIServiceImpl implements OpenAIService {
      */
     private Map<String, String> fallbackMapping(List<FormFieldInfo> fields, UserProfileDocument profile) {
         Map<String, String> mapping = new HashMap<>();
-        
+
         for (FormFieldInfo field : fields) {
-            String combined = normalize(field.getLabel()) + " " + 
-                             normalize(field.getName()) + " " + 
-                             normalize(field.getId()) + " " +
-                             normalize(field.getPlaceholder());
-            
-            String identifier = field.getId() != null && !field.getId().isEmpty() 
-                ? field.getId() : field.getName();
-            
-            if (identifier == null || identifier.isEmpty()) continue;
-            
+            String combined = normalize(field.getLabel()) + " " +
+                    normalize(field.getName()) + " " +
+                    normalize(field.getId()) + " " +
+                    normalize(field.getPlaceholder());
+
+            String identifier = field.getId() != null && !field.getId().isEmpty()
+                    ? field.getId()
+                    : field.getName();
+
+            if (identifier == null || identifier.isEmpty())
+                continue;
+
             String value = matchFieldToProfile(combined, profile);
             if (value != null && !value.isEmpty()) {
                 mapping.put(identifier, value);
             }
         }
-        
+
         return mapping;
     }
 
@@ -307,8 +309,8 @@ public class OpenAIServiceImpl implements OpenAIService {
             return profile.getCountry();
         }
         if (matches(combined, "citizen", "citizenship", "authorized", "authorization")) {
-            return profile.isUsCitizen() ? "Yes" : 
-                   (profile.getWorkAuthorization() != null ? profile.getWorkAuthorization() : "");
+            return profile.isUsCitizen() ? "Yes"
+                    : (profile.getWorkAuthorization() != null ? profile.getWorkAuthorization() : "");
         }
         if (matches(combined, "sponsor", "sponsorship", "visa")) {
             return profile.isRequiresSponsorship() ? "Yes" : "No";
@@ -358,8 +360,84 @@ public class OpenAIServiceImpl implements OpenAIService {
 
     private boolean matches(String text, String... keywords) {
         for (String kw : keywords) {
-            if (text.contains(kw)) return true;
+            if (text.contains(kw))
+                return true;
         }
         return false;
+    }
+
+    @Override
+    public Map<String, Object> scoreResume(String resumeText, String fileName) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (!isAvailable()) {
+            log.warn("OpenAI API not available - returning fallback resume score");
+            // Return a fallback score based on basic analysis
+            int textLength = resumeText != null ? resumeText.length() : 0;
+            int profileScore = Math.min(85, 50 + (textLength / 100));
+            int keywordsScore = Math.min(75, 40 + (textLength / 150));
+            int atsScore = 80; // Assume decent ATS compatibility
+            int overall = (profileScore + keywordsScore + atsScore) / 3;
+
+            result.put("overall", overall);
+            result.put("profile", profileScore);
+            result.put("keywords", keywordsScore);
+            result.put("ats", atsScore);
+            result.put("message", "Basic analysis complete. Connect OpenAI for detailed scoring.");
+            return result;
+        }
+
+        try {
+            String prompt = String.format(
+                    """
+                            You are a professional resume reviewer and ATS (Applicant Tracking System) expert.
+
+                            Analyze this resume and provide scores in these categories:
+                            1. Complete Profile (0-100): How complete is the resume? Does it have contact info, work experience, education, skills?
+                            2. Keywords Optimization (0-100): Does it contain relevant industry keywords and action verbs?
+                            3. ATS Compatibility (0-100): Is the formatting ATS-friendly? No tables, images, proper sections?
+
+                            Resume filename: %s
+
+                            Resume content:
+                            %s
+
+                            Respond ONLY with JSON in this exact format:
+                            {"overall": 78, "profile": 85, "keywords": 65, "ats": 84, "message": "Brief one-line feedback"}
+                            """,
+                    fileName != null ? fileName : "resume",
+                    resumeText != null && resumeText.length() > 3000
+                            ? resumeText.substring(0, 3000) + "..."
+                            : (resumeText != null ? resumeText : "No content"));
+
+            String response = callOpenAI(prompt);
+            log.info("Resume score response: {}", response);
+
+            // Parse the JSON response
+            String jsonStr = response.trim();
+            if (jsonStr.startsWith("```")) {
+                jsonStr = jsonStr.replaceAll("```json\\s*", "").replaceAll("```\\s*", "");
+            }
+
+            JsonNode scoreNode = objectMapper.readTree(jsonStr);
+            result.put("overall", scoreNode.path("overall").asInt(70));
+            result.put("profile", scoreNode.path("profile").asInt(70));
+            result.put("keywords", scoreNode.path("keywords").asInt(60));
+            result.put("ats", scoreNode.path("ats").asInt(80));
+            result.put("message", scoreNode.path("message").asText("Resume analyzed successfully."));
+
+            log.info("Resume scored: overall={}", result.get("overall"));
+
+        } catch (Exception e) {
+            log.error("Failed to score resume with OpenAI: {}", e.getMessage());
+            // Return default scores on error
+            result.put("overall", 70);
+            result.put("profile", 70);
+            result.put("keywords", 60);
+            result.put("ats", 80);
+            result.put("message", "Unable to analyze resume. Default scores applied.");
+        }
+
+        return result;
     }
 }

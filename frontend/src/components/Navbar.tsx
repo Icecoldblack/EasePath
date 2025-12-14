@@ -14,7 +14,7 @@ const Navbar: React.FC = () => {
           Dashboard
         </NavLink>
         <NavLink to="/auto-apply" className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}>
-          Auto Apply
+          My Applications
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}>
           Settings

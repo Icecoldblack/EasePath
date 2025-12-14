@@ -66,7 +66,7 @@ const JobsPage: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
-  
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +77,7 @@ const JobsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
   const [hasSearched, setHasSearched] = useState(false);
-  
+
   const [filters, setFilters] = useState<Filters>({
     query: '',
     location: '',
@@ -147,7 +147,7 @@ const JobsPage: React.FC = () => {
 
       const data = await response.json();
       console.log('Jobs API response:', data);
-      
+
       if (data.data && data.data.length > 0) {
         setJobs(pageNum === 1 ? data.data : [...jobs, ...data.data]);
         setTotalJobs(data.data.length > 0 ? (data.data.length * 10) : 0); // Estimated total
@@ -309,11 +309,11 @@ const JobsPage: React.FC = () => {
 
   const formatSalary = (job: Job) => {
     if (!job.job_min_salary && !job.job_max_salary) return 'No salary listed';
-    
+
     const currency = job.job_salary_currency || 'USD';
     const period = job.job_salary_period || 'YEAR';
     const periodLabel = period === 'HOUR' ? '/hr' : period === 'MONTH' ? '/mo' : '/yr';
-    
+
     if (job.job_min_salary && job.job_max_salary) {
       return `$${job.job_min_salary.toLocaleString()} - $${job.job_max_salary.toLocaleString()}${periodLabel}`;
     }
@@ -325,7 +325,7 @@ const JobsPage: React.FC = () => {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -373,7 +373,7 @@ const JobsPage: React.FC = () => {
   return (
     <div className={`jobs-container ${theme} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar */}
-      <motion.aside 
+      <motion.aside
         className={`jobs-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
         initial={{ x: -260 }}
         animate={{ x: 0, width: sidebarCollapsed ? 70 : 260 }}
@@ -384,7 +384,7 @@ const JobsPage: React.FC = () => {
           {!sidebarCollapsed && <span className="logo-text">EasePath</span>}
         </div>
 
-        <button 
+        <button
           className="sidebar-toggle"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -399,53 +399,81 @@ const JobsPage: React.FC = () => {
         </button>
 
         <nav className="sidebar-nav">
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
             onClick={() => handleNavClick('dashboard', '/dashboard')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Dashboard</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'jobs' ? 'active' : ''}`}
             onClick={() => handleNavClick('jobs', '/jobs')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">💼</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Find Jobs</span>}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`}
             onClick={() => handleNavClick('auto-apply', '/auto-apply')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">🚀</span>
-            {!sidebarCollapsed && <span className="nav-text">Auto Apply</span>}
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </span>
+            {!sidebarCollapsed && <span className="nav-text">My Applications</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'resume' ? 'active' : ''}`}
             onClick={() => handleNavClick('resume', '/resume')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">📄</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Resume</span>}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'settings' ? 'active' : ''}`}
             onClick={() => handleNavClick('settings', '/settings')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">⚙️</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Settings</span>}
           </motion.div>
         </nav>
@@ -467,12 +495,39 @@ const JobsPage: React.FC = () => {
 
       {/* Main Content */}
       <main className={`jobs-main ${sidebarCollapsed ? 'expanded' : ''}`}>
-        {/* Search Header */}
+        {/* Top Bar */}
+        <div className="top-bar">
+          <div className="search-bar-top">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" placeholder="Search jobs, companies..." />
+          </div>
+          <div className="top-bar-actions">
+            <button className="icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+              </svg>
+            </button>
+            <button className="icon-btn notification">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              <span className="notification-dot"></span>
+            </button>
+          </div>
+        </div>
+
+        {/* Page Header */}
         <div className="jobs-header">
           <div className="header-top">
             <div>
-              <h1 className="header-title">Search All Jobs</h1>
-              <p className="header-subtitle">Find your next opportunity from thousands of listings</p>
+              <h1 className="header-title">Find Your Dream Job</h1>
+              <p className="header-subtitle">Browse through thousands of opportunities</p>
             </div>
           </div>
 
@@ -486,191 +541,38 @@ const JobsPage: React.FC = () => {
                 </svg>
                 <input
                   type="text"
-                  placeholder="Search for roles, companies, or locations"
+                  placeholder="Search job title, company..."
                   value={filters.query}
                   onChange={(e) => handleFilterChange('query', e.target.value)}
                   className="search-input"
                 />
               </div>
-              <button type="submit" className="search-button">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                Search
-              </button>
-            </div>
-
-            {/* Filter Pills */}
-            <div className="filter-pills">
-              <button
-                type="button"
-                className={`filter-pill ${filters.location ? 'active' : ''}`}
-                onClick={() => setShowFilters(!showFilters)}
+              <select
+                value={filters.employmentType}
+                onChange={(e) => handleFilterChange('employmentType', e.target.value)}
+                className="filter-dropdown"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                Location {filters.location && `(1)`}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                className={`filter-pill ${filters.employmentType ? 'active' : ''}`}
-                onClick={() => setShowFilters(!showFilters)}
+                {EMPLOYMENT_TYPES.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+              <select
+                value={filters.location}
+                onChange={(e) => handleFilterChange('location', e.target.value)}
+                className="filter-dropdown"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-                Job Type {filters.employmentType && `(1)`}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                className={`filter-pill ${filters.experienceLevel ? 'active' : ''}`}
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 20V10" />
-                  <path d="M18 20V4" />
-                  <path d="M6 20v-4" />
-                </svg>
-                Experience Level
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                className="filter-pill more-filters"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="4" y1="21" x2="4" y2="14" />
-                  <line x1="4" y1="10" x2="4" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12" y2="3" />
-                  <line x1="20" y1="21" x2="20" y2="16" />
-                  <line x1="20" y1="12" x2="20" y2="3" />
-                </svg>
-                More Filters {getActiveFiltersCount() > 0 && `(${getActiveFiltersCount()})`}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-
-              {getActiveFiltersCount() > 0 && (
-                <button type="button" className="clear-filters" onClick={clearFilters}>
-                  Clear All Filters
-                </button>
-              )}
+                <option value="">All Locations</option>
+                <option value="San Francisco">San Francisco</option>
+                <option value="New York">New York</option>
+                <option value="Remote">Remote</option>
+                <option value="Austin">Austin</option>
+              </select>
             </div>
           </form>
-
-          {/* Expanded Filters Panel */}
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                className="filters-panel"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="filters-grid">
-                  <div className="filter-group">
-                    <label className="filter-label">Location</label>
-                    <input
-                      type="text"
-                      placeholder="City, State, or Country"
-                      value={filters.location}
-                      onChange={(e) => handleFilterChange('location', e.target.value)}
-                      className="filter-input"
-                    />
-                  </div>
-
-                  <div className="filter-group">
-                    <label className="filter-label">Job Type</label>
-                    <select
-                      value={filters.employmentType}
-                      onChange={(e) => handleFilterChange('employmentType', e.target.value)}
-                      className="filter-select"
-                    >
-                      {EMPLOYMENT_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label className="filter-label">Experience Level</label>
-                    <select
-                      value={filters.experienceLevel}
-                      onChange={(e) => handleFilterChange('experienceLevel', e.target.value)}
-                      className="filter-select"
-                    >
-                      {EXPERIENCE_LEVELS.map(level => (
-                        <option key={level.value} value={level.value}>{level.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label className="filter-label">Date Posted</label>
-                    <select
-                      value={filters.datePosted}
-                      onChange={(e) => handleFilterChange('datePosted', e.target.value)}
-                      className="filter-select"
-                    >
-                      {DATE_POSTED_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="filter-group checkbox-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={filters.remoteOnly}
-                        onChange={(e) => handleFilterChange('remoteOnly', e.target.checked)}
-                      />
-                      <span className="checkmark"></span>
-                      Remote Only
-                    </label>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Results Section */}
         <div className="jobs-content">
-          {/* Jobs Count */}
-          <div className="jobs-count-bar">
-            <span className="jobs-count">
-              Showing {jobs.length} of {totalJobs.toLocaleString()} Jobs
-            </span>
-            <div className="sort-toggle">
-              <span>Most recent</span>
-              <label className="toggle-switch">
-                <input type="checkbox" />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-
           <div className="jobs-layout">
             {/* Job Listings */}
             <div className="jobs-list">
@@ -698,18 +600,9 @@ const JobsPage: React.FC = () => {
                       whileHover={{ scale: 1.01 }}
                     >
                       <div className="job-card-header">
-                        <div className="company-logo">
-                          {job.employer_logo ? (
-                            <img src={job.employer_logo} alt={job.employer_name} />
-                          ) : (
-                            <div className="logo-placeholder">
-                              {job.employer_name.charAt(0)}
-                            </div>
-                          )}
-                        </div>
                         <div className="job-card-info">
-                          <span className="company-name">{job.employer_name}</span>
                           <h3 className="job-title">{job.job_title}</h3>
+                          <span className="company-name">{job.employer_name}</span>
                         </div>
                         <button
                           className={`save-button ${savedJobs.has(job.job_id) ? 'saved' : ''}`}
@@ -725,25 +618,38 @@ const JobsPage: React.FC = () => {
                       </div>
 
                       <div className="job-card-meta">
-                        <span className="meta-tag date">
-                          {formatDate(job.job_posted_at_datetime_utc)}
-                        </span>
-                        <span className="meta-tag location">
+                        <span className="meta-item">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                             <circle cx="12" cy="10" r="3" />
                           </svg>
-                          {job.job_city}, {job.job_state}, {job.job_country}
+                          {job.job_is_remote ? 'Remote' : `${job.job_city}, ${job.job_state}`}
                         </span>
-                        {job.job_min_salary && (
-                          <span className="meta-tag salary">
-                            💰 {formatSalary(job)}
+                        {(job.job_min_salary || job.job_max_salary) && (
+                          <span className="meta-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="12" y1="1" x2="12" y2="23" />
+                              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                            {formatSalary(job)}
                           </span>
                         )}
-                        <span className={`meta-tag type ${job.job_is_remote ? 'remote' : 'onsite'}`}>
-                          {job.job_is_remote ? '🏠 Remote' : '🏢 In Person'}
+                        <span className="meta-item">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          {formatDate(job.job_posted_at_datetime_utc)}
                         </span>
                       </div>
+
+                      {job.job_required_skills && job.job_required_skills.length > 0 && (
+                        <div className="job-card-skills">
+                          {job.job_required_skills.slice(0, 3).map((skill, idx) => (
+                            <span key={idx} className="skill-chip">{skill}</span>
+                          ))}
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -789,19 +695,39 @@ const JobsPage: React.FC = () => {
                 </div>
 
                 <div className="job-details-content">
-                  <div className="job-posting-date">
-                    {formatDate(selectedJob.job_posted_at_datetime_utc)}
-                  </div>
-
-                  <div className="detail-section summary-section">
-                    <div className="summary-tabs">
-                      <button className="summary-tab active">Summary</button>
-                      <button className="summary-tab">Full Job Posting</button>
+                  <div className="details-hero">
+                    <h2 className="detail-job-title">{selectedJob.job_title}</h2>
+                    <div className="detail-company-info">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                      </svg>
+                      <span>{selectedJob.employer_name}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span>{selectedJob.job_city}, {selectedJob.job_state}</span>
                     </div>
                   </div>
 
-                  <h2 className="detail-job-title">{selectedJob.job_title}</h2>
-                  <p className="detail-posted">Posted on {new Date(selectedJob.job_posted_at_datetime_utc).toLocaleDateString()}</p>
+                  <div className="job-info-tags">
+                    <span className="info-tag type">{getEmploymentTypeLabel(selectedJob.job_employment_type)}</span>
+                    {(selectedJob.job_min_salary || selectedJob.job_max_salary) && (
+                      <span className="info-tag salary">{formatSalary(selectedJob)}</span>
+                    )}
+                    <span className="info-tag posted">Posted {formatDate(selectedJob.job_posted_at_datetime_utc)}</span>
+                  </div>
+
+                  <div className="detail-section">
+                    <h4>About the Role</h4>
+                    <p className="role-description">
+                      We are looking for an experienced {selectedJob.job_title} to join our team...
+                    </p>
+                    <p className="role-description">
+                      {selectedJob.job_description.slice(0, 300)}...
+                    </p>
+                  </div>
 
                   <div className="company-info-card">
                     <div className="company-logo-large">
@@ -840,7 +766,7 @@ const JobsPage: React.FC = () => {
 
                   {selectedJob.job_required_skills && selectedJob.job_required_skills.length > 0 && (
                     <div className="detail-section">
-                      <h4>Required Skills</h4>
+                      <h4>Key Skills</h4>
                       <div className="skills-list">
                         {selectedJob.job_required_skills.map((skill, index) => (
                           <span key={index} className="skill-tag">{skill}</span>

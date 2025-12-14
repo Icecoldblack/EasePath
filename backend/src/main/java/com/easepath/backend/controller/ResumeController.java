@@ -24,6 +24,7 @@ import com.easepath.backend.model.ResumeDocument;
 import com.easepath.backend.model.User;
 import com.easepath.backend.repository.ResumeRepository;
 import com.easepath.backend.repository.UserProfileRepository;
+import com.easepath.backend.service.OpenAIService;
 import com.easepath.backend.service.ResumeService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +32,8 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/resume")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174" })
 public class ResumeController {
 
     private static final Logger log = LoggerFactory.getLogger(ResumeController.class);
@@ -39,12 +41,14 @@ public class ResumeController {
     private final ResumeService resumeService;
     private final ResumeRepository resumeRepository;
     private final UserProfileRepository userProfileRepository;
+    private final OpenAIService openAIService;
 
     public ResumeController(ResumeService resumeService, ResumeRepository resumeRepository,
-            UserProfileRepository userProfileRepository) {
+            UserProfileRepository userProfileRepository, OpenAIService openAIService) {
         this.resumeService = resumeService;
         this.resumeRepository = resumeRepository;
         this.userProfileRepository = userProfileRepository;
+        this.openAIService = openAIService;
     }
 
     @PostMapping
@@ -79,7 +83,7 @@ public class ResumeController {
 
         // Use authenticated user's email instead of request parameters
         String actualEmail = currentUser.getEmail();
-        
+
         log.info("Uploading resume for user: {}, file: {}", actualEmail, file.getOriginalFilename());
 
         if (actualEmail == null || actualEmail.isEmpty()) {
@@ -111,7 +115,7 @@ public class ResumeController {
                 log.info("Deleting {} existing resume(s) for user: {}", existingResumes.size(), actualEmail);
                 resumeRepository.deleteAll(existingResumes);
             }
-            
+
             // Store the new resume
             ResumeDocument resumeDoc = new ResumeDocument();
             resumeDoc.setUserEmail(actualEmail);
@@ -148,7 +152,7 @@ public class ResumeController {
      * Get the user's current resume info by path variable.
      */
     @GetMapping("/{email}")
-        public ResponseEntity<Map<String, Object>> getResumeByPath(
+    public ResponseEntity<Map<String, Object>> getResumeByPath(
             @org.springframework.web.bind.annotation.PathVariable("email") String email,
             HttpServletRequest request) {
         User currentUser = (User) request.getAttribute("currentUser");
@@ -174,7 +178,7 @@ public class ResumeController {
      * Get the user's current resume info.
      */
     @GetMapping
-        public ResponseEntity<Map<String, Object>> getResume(
+    public ResponseEntity<Map<String, Object>> getResume(
             @RequestParam(value = "email", required = false) String email,
             HttpServletRequest request) {
         User currentUser = (User) request.getAttribute("currentUser");
@@ -193,5 +197,124 @@ public class ResumeController {
                     return ResponseEntity.ok(response);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Score the user's current resume using AI analysis.
+     */
+    @GetMapping("/score")
+    public ResponseEntity<Map<String, Object>> scoreResume(HttpServletRequest request) {
+        User currentUser = (User) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        String userEmail = currentUser.getEmail();
+        return resumeRepository.findTopByUserEmailOrderByCreatedAtDesc(userEmail)
+                .map(resume -> {
+                    // Check for cached score first
+                    if (resume.getScoreOverall() != null) {
+                        log.info("Returning cached resume score for user: {}", userEmail);
+                        Map<String, Object> cachedScore = new HashMap<>();
+                        cachedScore.put("overall", resume.getScoreOverall());
+                        cachedScore.put("profile", resume.getScoreProfile());
+                        cachedScore.put("keywords", resume.getScoreKeywords());
+                        cachedScore.put("ats", resume.getScoreAts());
+                        cachedScore.put("message", resume.getScoreMessage());
+                        cachedScore.put("fileName", resume.getFileName());
+                        return ResponseEntity.ok(cachedScore);
+                    }
+
+                    // No cached score, proceed with AI scoring
+                    String resumeText = "";
+                    if (resume.getFileData() != null) {
+                        try {
+                            byte[] decoded = Base64.getDecoder().decode(resume.getFileData());
+                            resumeText = new String(decoded);
+                        } catch (Exception e) {
+                            log.warn("Could not decode resume content: {}", e.getMessage());
+                        }
+                    }
+
+                    Map<String, Object> score = openAIService.scoreResume(resumeText, resume.getFileName());
+
+                    // Cache the results
+                    try {
+                        resume.setScoreOverall((Integer) score.get("overall"));
+                        resume.setScoreProfile((Integer) score.get("profile"));
+                        resume.setScoreKeywords((Integer) score.get("keywords"));
+                        resume.setScoreAts((Integer) score.get("ats"));
+                        resume.setScoreMessage((String) score.get("message"));
+
+                        resumeRepository.save(resume);
+                        log.info("Cached new resume score for user: {}", userEmail);
+                    } catch (Exception e) {
+                        log.error("Failed to cache resume score: {}", e.getMessage());
+                    }
+
+                    score.put("fileName", resume.getFileName());
+                    return ResponseEntity.ok(score);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Download the user's current resume as a file.
+     */
+    @GetMapping("/download")
+    public ResponseEntity<byte[]> downloadResume(HttpServletRequest request) {
+        User currentUser = (User) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String userEmail = currentUser.getEmail();
+        return resumeRepository.findTopByUserEmailOrderByCreatedAtDesc(userEmail)
+                .map(resume -> {
+                    try {
+                        byte[] fileData = Base64.getDecoder().decode(resume.getFileData());
+                        return ResponseEntity.ok()
+                                .header("Content-Type", resume.getContentType())
+                                .header("Content-Disposition", "inline; filename=\"" + resume.getFileName() + "\"")
+                                .body(fileData);
+                    } catch (Exception e) {
+                        log.error("Failed to decode resume file: {}", e.getMessage());
+                        return ResponseEntity.internalServerError().<byte[]>build();
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Delete the user's resume.
+     */
+    @org.springframework.web.bind.annotation.DeleteMapping("/delete")
+    public ResponseEntity<Map<String, Object>> deleteResume(HttpServletRequest request) {
+        User currentUser = (User) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        String userEmail = currentUser.getEmail();
+        try {
+            List<ResumeDocument> resumes = resumeRepository.findAllByUserEmail(userEmail);
+            if (resumes.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            resumeRepository.deleteAll(resumes);
+
+            // Also clear resume from user profile
+            userProfileRepository.findByEmail(userEmail).ifPresent(profile -> {
+                profile.setResumeFileName(null);
+                userProfileRepository.save(profile);
+            });
+
+            log.info("Deleted {} resume(s) for user: {}", resumes.size(), userEmail);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Resume deleted successfully"));
+        } catch (Exception e) {
+            log.error("Failed to delete resume: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to delete resume"));
+        }
     }
 }

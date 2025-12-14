@@ -1,27 +1,99 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import './AutoApplyPage.css';
 
-type JobMatchResult = {
-  jobUrl: string
-  title: string
-  status: 'APPLIED' | 'PENDING' | 'SKIPPED_LOW_SCORE' | 'SKIPPED_PROMPT' | 'SKIPPED_UNRELATED' | 'ERROR'
-  reason?: string
-}
+type Application = {
+  id: string;
+  jobTitle: string;
+  company: string;
+  appliedDate: string;
+  matchScore: number;
+  salaryMin: number;
+  salaryMax: number;
+  location: string;
+  status: 'applied' | 'interview' | 'offer' | 'rejected';
+};
 
-type JobApplicationResult = {
-  jobBoardUrl: string
-  jobTitle: string
-  requestedApplications: number
-  appliedCount: number
-  skippedLowScore: number
-  skippedPrompts: number
-  skippedUnrelated: number
-  matches: JobMatchResult[]
-}
+// Sample data matching the reference image
+const SAMPLE_APPLICATIONS: Application[] = [
+  {
+    id: '1',
+    jobTitle: 'Senior Software Engineer',
+    company: 'Google',
+    appliedDate: '12/5/2024',
+    matchScore: 95,
+    salaryMin: 150000,
+    salaryMax: 200000,
+    location: 'Mountain View, CA',
+    status: 'interview',
+  },
+  {
+    id: '2',
+    jobTitle: 'Product Manager',
+    company: 'Microsoft',
+    appliedDate: '12/4/2024',
+    matchScore: 88,
+    salaryMin: 140000,
+    salaryMax: 180000,
+    location: 'Redmond, WA',
+    status: 'applied',
+  },
+  {
+    id: '3',
+    jobTitle: 'UX Designer',
+    company: 'Apple',
+    appliedDate: '12/2/2024',
+    matchScore: 92,
+    salaryMin: 130000,
+    salaryMax: 170000,
+    location: 'Cupertino, CA',
+    status: 'interview',
+  },
+  {
+    id: '4',
+    jobTitle: 'Data Scientist',
+    company: 'Amazon',
+    appliedDate: '12/1/2024',
+    matchScore: 78,
+    salaryMin: 120000,
+    salaryMax: 160000,
+    location: 'Seattle, WA',
+    status: 'offer',
+  },
+  {
+    id: '5',
+    jobTitle: 'Frontend Developer',
+    company: 'Meta',
+    appliedDate: '11/28/2024',
+    matchScore: 85,
+    salaryMin: 110000,
+    salaryMax: 150000,
+    location: 'Menlo Park, CA',
+    status: 'rejected',
+  },
+  {
+    id: '6',
+    jobTitle: 'Backend Engineer',
+    company: 'Netflix',
+    appliedDate: '11/25/2024',
+    matchScore: 90,
+    salaryMin: 140000,
+    salaryMax: 190000,
+    location: 'Los Gatos, CA',
+    status: 'applied',
+  },
+];
+
+const FILTER_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'applied', label: 'Applied' },
+  { key: 'interview', label: 'Interview' },
+  { key: 'offer', label: 'Offer' },
+  { key: 'rejected', label: 'Rejected' },
+];
 
 const AutoApplyPage: React.FC = () => {
   const { theme } = useTheme();
@@ -29,20 +101,8 @@ const AutoApplyPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('auto-apply');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [jobTitle, setJobTitle] = useState('Software Engineering Intern');
-  const [jobBoardUrl, setJobBoardUrl] = useState('');
-  const [applicationCount, setApplicationCount] = useState(5);
-  const [resumeSummary, setResumeSummary] = useState('');
-  const [preferredCompanies, setPreferredCompanies] = useState('');
-  const [jobPreference, setJobPreference] = useState('full-time');
-  const [salaryRange, setSalaryRange] = useState('$70k - $90k');
-  const [lookingForInternships, setLookingForInternships] = useState(false);
-  const [resumeFileName, setResumeFileName] = useState('');
-  const [resumeFileData, setResumeFileData] = useState('');
-  const [resumeError, setResumeError] = useState('');
-  const [applyResult, setApplyResult] = useState<JobApplicationResult | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [applications] = useState<Application[]>(SAMPLE_APPLICATIONS);
 
   const handleNavClick = (nav: string, path: string) => {
     setActiveNav(nav);
@@ -54,90 +114,42 @@ const AutoApplyPage: React.FC = () => {
     navigate('/');
   };
 
-  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      setResumeFileName('');
-      setResumeFileData('');
-      return;
-    }
-
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type)) {
-      setResumeError('Please upload a PDF or Word document (.pdf, .doc, .docx).');
-      setResumeFileName('');
-      setResumeFileData('');
-      return;
-    }
-
-    setResumeError('');
-    setResumeFileName(file.name);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result === 'string') {
-        const base64 = result.split(',')[1] ?? '';
-        setResumeFileData(base64);
-      }
-    };
-    reader.readAsDataURL(file);
+  const formatSalary = (min: number, max: number) => {
+    return `$${Math.round(min / 1000)}k - $${Math.round(max / 1000)}k`;
   };
 
-  const preferredCompaniesList = useMemo(
-    () => preferredCompanies
-      .split(',')
-      .map((company) => company.trim())
-      .filter(Boolean),
-    [preferredCompanies]
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'interview': return 'status-interview';
+      case 'applied': return 'status-applied';
+      case 'offer': return 'status-offer';
+      case 'rejected': return 'status-rejected';
+      default: return '';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const filteredApplications = applications.filter(app =>
+    activeFilter === 'all' || app.status === activeFilter
   );
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setApplyResult(null);
-
-    try {
-      const response = await fetch('/api/apply', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobTitle,
-          jobBoardUrl,
-          applicationCount,
-          resumeSummary,
-          resumeFileName,
-          resumeFileData,
-          preferredCompanies: preferredCompaniesList,
-          jobPreference,
-          salaryRange,
-          lookingForInternships,
-          userEmail: user?.email
-        }),
-      });
-
-      if (response.ok) {
-        const data: JobApplicationResult = await response.json();
-        setApplyResult(data);
-      } else {
-        const message = await response.text();
-        throw new Error(message || 'Failed to start job application process.');
-      }
-    } catch (error) {
-      console.error('Error communicating with the backend:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Unknown error communicating with the backend');
-    }
-    setIsSubmitting(false);
+  const getCounts = () => {
+    const counts: Record<string, number> = { all: applications.length };
+    applications.forEach(app => {
+      counts[app.status] = (counts[app.status] || 0) + 1;
+    });
+    return counts;
   };
+
+  const counts = getCounts();
 
   return (
     <div className={`auto-apply-container ${theme} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* Sidebar - Same as Dashboard */}
-      <motion.aside 
+      {/* Sidebar */}
+      <motion.aside
         className={`auto-apply-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
         initial={{ x: -260 }}
         animate={{ x: 0, width: sidebarCollapsed ? 70 : 260 }}
@@ -148,8 +160,7 @@ const AutoApplyPage: React.FC = () => {
           {!sidebarCollapsed && <span className="logo-text">EasePath</span>}
         </div>
 
-        {/* Collapse Toggle */}
-        <button 
+        <button
           className="sidebar-toggle"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -164,53 +175,81 @@ const AutoApplyPage: React.FC = () => {
         </button>
 
         <nav className="sidebar-nav">
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
             onClick={() => handleNavClick('dashboard', '/dashboard')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Dashboard</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'jobs' ? 'active' : ''}`}
             onClick={() => handleNavClick('jobs', '/jobs')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">💼</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Find Jobs</span>}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`}
             onClick={() => handleNavClick('auto-apply', '/auto-apply')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">🚀</span>
-            {!sidebarCollapsed && <span className="nav-text">Auto Apply</span>}
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </span>
+            {!sidebarCollapsed && <span className="nav-text">My Applications</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'resume' ? 'active' : ''}`}
             onClick={() => handleNavClick('resume', '/resume')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">📄</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Resume</span>}
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className={`nav-item ${activeNav === 'settings' ? 'active' : ''}`}
             onClick={() => handleNavClick('settings', '/settings')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="nav-icon">⚙️</span>
+            <span className="nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            </span>
             {!sidebarCollapsed && <span className="nav-text">Settings</span>}
           </motion.div>
         </nav>
@@ -232,126 +271,139 @@ const AutoApplyPage: React.FC = () => {
 
       {/* Main Content */}
       <main className={`auto-apply-main ${sidebarCollapsed ? 'expanded' : ''}`}>
-        <section className="auto-apply-card">
-          <h2>Auto Job Applicator</h2>
-          <form className="auto-apply-form" onSubmit={handleSubmit}>
-        <label>
-          Job Title / Keywords
-          <input
-            type="text"
-            value={jobTitle}
-            onChange={(event) => setJobTitle(event.target.value)}
-          />
-        </label>
-        <label>
-          Job Board URL
-          <input
-            type="text"
-            value={jobBoardUrl}
-            onChange={(event) => setJobBoardUrl(event.target.value)}
-            placeholder="e.g., https://www.linkedin.com/jobs"
-          />
-        </label>
-        <label>
-          Number of Applications
-          <input
-            type="number"
-            value={applicationCount}
-            onChange={(event) => setApplicationCount(parseInt(event.target.value, 10))}
-            min="1"
-          />
-        </label>
-        <label>
-          Resume Summary / Highlights
-          <textarea
-            value={resumeSummary}
-            onChange={(event) => setResumeSummary(event.target.value)}
-            placeholder="Paste your resume summary or upload in the future"
-            rows={4}
-          />
-        </label>
-          <label>
-            Upload Resume (PDF or Word)
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={handleResumeUpload}
-            />
-            {resumeFileName && <span className="file-hint">Selected: {resumeFileName}</span>}
-            {resumeError && <span className="file-error">{resumeError}</span>}
-          </label>
-        <label>
-          Preferred Companies (comma separated)
-          <input
-            type="text"
-            value={preferredCompanies}
-            onChange={(event) => setPreferredCompanies(event.target.value)}
-            placeholder="e.g., Google, Microsoft, Stripe"
-          />
-        </label>
-        <label>
-          Job Preference
-          <select value={jobPreference} onChange={(event) => setJobPreference(event.target.value)}>
-            <option value="full-time">Full-time</option>
-            <option value="part-time">Part-time</option>
-            <option value="contract">Contract</option>
-            <option value="remote">Remote</option>
-            <option value="internship">Internship</option>
-          </select>
-        </label>
-        <label>
-          Target Salary Range
-          <input
-            type="text"
-            value={salaryRange}
-            onChange={(event) => setSalaryRange(event.target.value)}
-            placeholder="$70k - $90k"
-          />
-        </label>
-        <label className="checkbox-field">
-          <input
-            type="checkbox"
-            checked={lookingForInternships}
-            onChange={(event) => setLookingForInternships(event.target.checked)}
-          />
-          Also include internship opportunities
-        </label>
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Scanning…' : 'Start Applying'}
-        </button>
-        </form>
-        {submitError && <p className="file-error">{submitError}</p>}
-        {applyResult && (
-          <div className="apply-results">
-            <header>
-              <h3>Results</h3>
-              <p>
-                Applied {applyResult.appliedCount} / {applyResult.requestedApplications} •
-                Skipped (score {applyResult.skippedLowScore}, prompts {applyResult.skippedPrompts}, unrelated {applyResult.skippedUnrelated})
-              </p>
-            </header>
-            <ul>
-              {applyResult.matches.map((match, index) => (
-                <li
-                  key={match.jobUrl ? `${match.jobUrl}-${match.status}-${index}` : `${match.status}-${index}`}
-                  className={`match-${match.status.toLowerCase()}`}
-                >
-                  <div>
-                    <strong>{match.title || 'Untitled Job'}</strong>
-                    <span className="match-chip">{match.status.replace(/_/g, ' ')}</span>
-                  </div>
-                  <a href={match.jobUrl} target="_blank" rel="noreferrer">{match.jobUrl}</a>
-                  {match.reason && <p>{match.reason}</p>}
-                </li>
-              ))}
-            </ul>
+        {/* Top Bar */}
+        <div className="top-bar">
+          <div className="search-bar-top">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" placeholder="Search jobs, companies..." />
           </div>
-        )}
-        </section>
+          <div className="top-bar-actions">
+            <button className="icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+              </svg>
+            </button>
+            <button className="icon-btn notification">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              <span className="notification-dot"></span>
+            </button>
+          </div>
+        </div>
+
+        {/* Page Header */}
+        <div className="page-header">
+          <h1>My Applications</h1>
+          <p className="page-subtitle">Track and manage all your job applications</p>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="filter-tabs">
+          {FILTER_TABS.map(tab => (
+            <button
+              key={tab.key}
+              className={`filter-tab ${activeFilter === tab.key ? 'active' : ''}`}
+              onClick={() => setActiveFilter(tab.key)}
+            >
+              {tab.label} ({counts[tab.key] || 0})
+            </button>
+          ))}
+        </div>
+
+        {/* Applications List */}
+        <div className="applications-list">
+          {filteredApplications.map((app, index) => (
+            <motion.div
+              key={app.id}
+              className="application-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <div className="app-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" />
+                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                </svg>
+              </div>
+
+              <div className="app-details">
+                <div className="app-header">
+                  <h3 className="app-title">{app.jobTitle}</h3>
+                  <span className="app-company">{app.company}</span>
+                </div>
+
+                <div className="app-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">Applied Date</span>
+                    <span className="meta-value">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                      {app.appliedDate}
+                    </span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Match Score</span>
+                    <span className="meta-value score">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                        <polyline points="17 6 23 6 23 12" />
+                      </svg>
+                      {app.matchScore}%
+                    </span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Salary Range</span>
+                    <span className="meta-value">{formatSalary(app.salaryMin, app.salaryMax)}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Location</span>
+                    <span className="meta-value">{app.location}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="app-actions">
+                <span className={`status-badge ${getStatusColor(app.status)}`}>
+                  {getStatusLabel(app.status)}
+                </span>
+                <button className="action-btn view" title="View Application">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button className="action-btn delete" title="Delete Application">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+                <button className="action-btn more" title="More Options">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="1" />
+                    <circle cx="12" cy="5" r="1" />
+                    <circle cx="12" cy="19" r="1" />
+                  </svg>
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </main>
     </div>
   );
 };
 
 export default AutoApplyPage;
-
