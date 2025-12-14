@@ -185,23 +185,50 @@ const OnboardingPage: React.FC = () => {
     }));
   };
 
+  const validateStep = (step: number): boolean => {
+    setError(null);
+    switch (step) {
+      case 1:
+        if (!formData.firstName || !formData.lastName || !formData.phone || !formData.linkedInUrl) {
+          setError('Please fill in all required fields (*)');
+          return false;
+        }
+        return true;
+      case 2:
+        if (!formData.address || !formData.city || !formData.state || !formData.zipCode || !formData.country) {
+          setError('Please fill in all required fields (*)');
+          return false;
+        }
+        return true;
+      case 3:
+        if (!formData.isUsCitizen && !formData.workAuthorization) {
+          setError('Please select your work authorization status');
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  };
+
   const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
+    if (validateStep(currentStep)) {
+      if (currentStep < totalSteps) {
+        setCurrentStep(prev => prev + 1);
+        window.scrollTo(0, 0);
+      }
     }
   };
 
   const prevStep = () => {
+    setError(null);
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      window.scrollTo(0, 0);
     }
   };
 
-  const handleSkipOnboarding = () => {
-    // Mark onboarding as completed locally so user can proceed
-    updateUser({ onboardingCompleted: true });
-    navigate('/dashboard');
-  };
+
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -282,7 +309,7 @@ const OnboardingPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label>LinkedIn Profile</label>
+              <label>LinkedIn Profile *</label>
               <input
                 type="url"
                 name="linkedInUrl"
@@ -324,7 +351,7 @@ const OnboardingPage: React.FC = () => {
             <p className="step-description">Your location helps match you with relevant opportunities.</p>
 
             <div className="form-group">
-              <label>Street Address</label>
+              <label>Street Address *</label>
               <input
                 type="text"
                 name="address"
@@ -361,7 +388,7 @@ const OnboardingPage: React.FC = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label>ZIP Code</label>
+                <label>ZIP Code *</label>
                 <input
                   type="text"
                   name="zipCode"
@@ -371,7 +398,7 @@ const OnboardingPage: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Country</label>
+                <label>Country *</label>
                 <select name="country" value={formData.country} onChange={handleChange}>
                   <option value="United States">United States</option>
                   <option value="Canada">Canada</option>
@@ -386,7 +413,7 @@ const OnboardingPage: React.FC = () => {
       case 3:
         return (
           <div className="onboarding-step">
-            <h2>🛂 Work Authorization</h2>
+            <h2> Work Authorization *</h2>
             <p className="step-description">Many applications ask about your eligibility to work.</p>
 
             <div className="form-group checkbox-group">
@@ -692,18 +719,7 @@ const OnboardingPage: React.FC = () => {
         </div>
 
         {/* Skip / Cancel button */}
-        {!isEditMode && (
-          <div className="skip-section">
-            <button
-              type="button"
-              className="btn-skip"
-              onClick={handleSkipOnboarding}
-            >
-              Skip for now →
-            </button>
-            <p className="skip-note">You can complete your profile later in Settings</p>
-          </div>
-        )}
+
 
         {isEditMode && (
           <div className="skip-section">
