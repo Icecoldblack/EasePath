@@ -54,6 +54,7 @@ interface OnboardingData {
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,21 +81,25 @@ const OnboardingPage: React.FC = () => {
     state: '',
     zipCode: '',
     country: 'United States',
+
     isUsCitizen: false,
     workAuthorization: '',
     requiresSponsorship: false,
     hasWorkVisa: false,
     visaType: '',
+
     desiredJobTitle: '',
     desiredSalary: '',
     yearsOfExperience: '',
     willingToRelocate: false,
     preferredLocations: '',
     availableStartDate: '',
+
     highestDegree: '',
     university: '',
     major: '',
     graduationYear: '',
+
     veteranStatus: 'Prefer not to say',
     disabilityStatus: 'Prefer not to say',
     gender: 'Prefer not to say',
@@ -115,19 +120,11 @@ const OnboardingPage: React.FC = () => {
       // Check edit mode directly from URL to avoid race condition
       const urlParams = new URLSearchParams(window.location.search);
       const isEditModeFromUrl = urlParams.get('edit') === 'true';
-      if (isEditModeFromUrl) {
-        setIsEditMode(true);
-      }
+      if (isEditModeFromUrl) setIsEditMode(true);
 
       try {
-        const token = localStorage.getItem('auth_token');
         const response = await fetch(
-          `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(user.email)}`,
-          {
-            headers: {
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            }
-          }
+          `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(user.email)}`
         );
 
         if (response.ok) {
@@ -143,29 +140,43 @@ const OnboardingPage: React.FC = () => {
           // Pre-fill form with existing data
           setFormData(prev => ({
             ...prev,
+
+            // strings: keep || so empty/undefined falls back
             firstName: profile.firstName || prev.firstName,
             lastName: profile.lastName || prev.lastName,
             phone: profile.phone || prev.phone,
+
             linkedInUrl: profile.linkedInUrl || prev.linkedInUrl,
             githubUrl: profile.githubUrl || prev.githubUrl,
             portfolioUrl: profile.portfolioUrl || prev.portfolioUrl,
+
             address: profile.address || prev.address,
             city: profile.city || prev.city,
             state: profile.state || prev.state,
             zipCode: profile.zipCode || prev.zipCode,
             country: profile.country || prev.country,
-            isUsCitizen: profile.isUsCitizen || prev.isUsCitizen,
+
+            // booleans: MUST use ?? so false stays false
+            isUsCitizen: profile.isUsCitizen ?? prev.isUsCitizen,
+            requiresSponsorship: profile.requiresSponsorship ?? prev.requiresSponsorship,
+            hasWorkVisa: profile.hasWorkVisa ?? prev.hasWorkVisa,
+            willingToRelocate: profile.willingToRelocate ?? prev.willingToRelocate,
+
+            // other fields
             workAuthorization: profile.workAuthorization || prev.workAuthorization,
-            requiresSponsorship: profile.requiresSponsorship || prev.requiresSponsorship,
-            hasWorkVisa: profile.hasWorkVisa || prev.hasWorkVisa,
             visaType: profile.visaType || prev.visaType,
+
             desiredJobTitle: profile.desiredJobTitle || prev.desiredJobTitle,
             desiredSalary: profile.desiredSalary || prev.desiredSalary,
             yearsOfExperience: profile.yearsOfExperience || prev.yearsOfExperience,
+            preferredLocations: profile.preferredLocations || prev.preferredLocations,
+            availableStartDate: profile.availableStartDate || prev.availableStartDate,
+
             highestDegree: profile.highestDegree || prev.highestDegree,
             university: profile.university || prev.university,
             major: profile.major || prev.major,
             graduationYear: profile.graduationYear || prev.graduationYear,
+
             veteranStatus: profile.veteranStatus || prev.veteranStatus,
             disabilityStatus: profile.disabilityStatus || prev.disabilityStatus,
             gender: profile.gender || prev.gender,
@@ -183,11 +194,33 @@ const OnboardingPage: React.FC = () => {
     checkAndLoadProfile();
   }, [user?.email, navigate, updateUser]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
+
+    // Special behavior: if user checks "U.S. Citizen", clear visa-related fields
+    if (name === 'isUsCitizen' && type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+
+      setFormData(prev => ({
+        ...prev,
+        isUsCitizen: checked,
+        ...(checked
+          ? {
+              workAuthorization: '',
+              requiresSponsorship: false,
+              hasWorkVisa: false,
+              visaType: '',
+            }
+          : {}),
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -234,8 +267,6 @@ const OnboardingPage: React.FC = () => {
     }
   };
 
-
-
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -246,21 +277,19 @@ const OnboardingPage: React.FC = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           ...formData,
           email: user?.email,
           googleId: user?.googleId,
-          onboardingCompleted: true
-        })
+          onboardingCompleted: true,
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to save profile');
 
-      // Update local user state to mark onboarding as complete
       updateUser({ onboardingCompleted: true });
-
       navigate(isEditMode ? '/settings' : '/dashboard');
     } catch (err) {
       setError('Failed to save your profile. Please try again.');
@@ -430,7 +459,12 @@ const OnboardingPage: React.FC = () => {
                   checked={formData.isUsCitizen}
                   onChange={handleChange}
                 />
-                <span>I am a U.S. Citizen</span>
+                <span>
+                  I am a U.S. Citizen{' '}
+                  <span className={`check-pill ${formData.isUsCitizen ? 'on' : ''}`}>
+                    {formData.isUsCitizen ? '✓' : 'X'}
+                  </span>
+                </span>
               </label>
             </div>
 
@@ -440,10 +474,12 @@ const OnboardingPage: React.FC = () => {
                   <label>Work Authorization Status</label>
                   <select name="workAuthorization" value={formData.workAuthorization} onChange={handleChange}>
                     <option value="">Select...</option>
+
                     <optgroup label="Permanent Authorization">
                       <option value="Green Card">Green Card / Permanent Resident</option>
                       <option value="Asylee/Refugee">Asylee / Refugee</option>
                     </optgroup>
+
                     <optgroup label="Work Visas">
                       <option value="H1B">H-1B Visa</option>
                       <option value="H1B1">H-1B1 Visa (Chile/Singapore)</option>
@@ -456,6 +492,7 @@ const OnboardingPage: React.FC = () => {
                       <option value="E2">E-2 Visa (Treaty Investor)</option>
                       <option value="E3">E-3 Visa (Australian Specialty)</option>
                     </optgroup>
+
                     <optgroup label="Student/Training Visas">
                       <option value="F1 OPT">F-1 OPT (Optional Practical Training)</option>
                       <option value="F1 STEM OPT">F-1 STEM OPT Extension</option>
@@ -464,6 +501,7 @@ const OnboardingPage: React.FC = () => {
                       <option value="J1 Academic Training">J-1 Academic Training</option>
                       <option value="M1">M-1 Visa (Vocational Student)</option>
                     </optgroup>
+
                     <optgroup label="Other">
                       <option value="EAD">EAD (Employment Authorization Document)</option>
                       <option value="Pending Adjustment">Pending Adjustment of Status</option>
@@ -483,7 +521,12 @@ const OnboardingPage: React.FC = () => {
                       checked={formData.requiresSponsorship}
                       onChange={handleChange}
                     />
-                    <span>I will require visa sponsorship now or in the future</span>
+                    <span>
+                      I will require visa sponsorship now or in the future{' '}
+                      <span className={`check-pill ${formData.requiresSponsorship ? 'on' : ''}`}>
+                        {formData.requiresSponsorship ? '✓' : 'X'}
+                      </span>
+                    </span>
                   </label>
                 </div>
               </>
@@ -540,7 +583,12 @@ const OnboardingPage: React.FC = () => {
                   checked={formData.willingToRelocate}
                   onChange={handleChange}
                 />
-                <span>I am willing to relocate</span>
+                <span>
+                  I am willing to relocate{' '}
+                  <span className={`check-pill ${formData.willingToRelocate ? 'on' : ''}`}>
+                    {formData.willingToRelocate ? '✓' : 'X'}
+                  </span>
+                </span>
               </label>
             </div>
 
@@ -689,11 +737,9 @@ const OnboardingPage: React.FC = () => {
     <div className="onboarding-container">
       <div className="onboarding-card">
         <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-          />
+          <div className="progress-fill" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
         </div>
+
         <div className="step-indicator">
           Step {currentStep} of {totalSteps}
         </div>
@@ -708,6 +754,7 @@ const OnboardingPage: React.FC = () => {
               ← Back
             </button>
           )}
+
           {currentStep < totalSteps ? (
             <button type="button" className="btn-primary" onClick={nextStep}>
               Continue →
@@ -724,16 +771,9 @@ const OnboardingPage: React.FC = () => {
           )}
         </div>
 
-        {/* Skip / Cancel button */}
-
-
         {isEditMode && (
           <div className="skip-section">
-            <button
-              type="button"
-              className="btn-skip"
-              onClick={() => navigate('/settings')}
-            >
+            <button type="button" className="btn-skip" onClick={() => navigate('/settings')}>
               ← Cancel and go back
             </button>
           </div>
