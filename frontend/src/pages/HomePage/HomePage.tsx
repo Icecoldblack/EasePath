@@ -151,13 +151,13 @@ const HomePage: React.FC = () => {
             onLetterAnimationComplete={handleAnimationComplete}
           />
           <h2>Welcome</h2>
-          <p><b>Use your Google account to continue.</b></p>
+          <p><b>The Easier way to apply and win</b></p>
 
           <div className="google-login-container">
             <GoogleLogin onSuccess={handleSuccess} onError={handleError} />
           </div>
 
-          <p className="login-footer-text"><b>Secure sign-in powered by Google OAuth.</b></p>
+          <p className="login-footer-text"><b>Time to Get Started.</b></p>
         </div>
       </div>
     </>

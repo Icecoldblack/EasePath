@@ -9,26 +9,26 @@ interface OnboardingData {
   firstName: string;
   lastName: string;
   phone: string;
-  
+
   // Professional Links
   linkedInUrl: string;
   githubUrl: string;
   portfolioUrl: string;
-  
+
   // Location
   address: string;
   city: string;
   state: string;
   zipCode: string;
   country: string;
-  
+
   // Work Authorization
   isUsCitizen: boolean;
   workAuthorization: string;
   requiresSponsorship: boolean;
   hasWorkVisa: boolean;
   visaType: string;
-  
+
   // Job Preferences
   desiredJobTitle: string;
   desiredSalary: string;
@@ -36,13 +36,13 @@ interface OnboardingData {
   willingToRelocate: boolean;
   preferredLocations: string;
   availableStartDate: string;
-  
+
   // Education
   highestDegree: string;
   university: string;
   major: string;
   graduationYear: string;
-  
+
   // EEO (Optional)
   veteranStatus: string;
   disabilityStatus: string;
@@ -67,7 +67,7 @@ const OnboardingPage: React.FC = () => {
       setIsEditMode(true);
     }
   }, []);
-  
+
   const [formData, setFormData] = useState<OnboardingData>({
     firstName: '',
     lastName: '',
@@ -111,22 +111,29 @@ const OnboardingPage: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      
+
+      // Check edit mode directly from URL to avoid race condition
+      const urlParams = new URLSearchParams(window.location.search);
+      const isEditModeFromUrl = urlParams.get('edit') === 'true';
+      if (isEditModeFromUrl) {
+        setIsEditMode(true);
+      }
+
       try {
         const response = await fetch(
           `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(user.email)}`
         );
-        
+
         if (response.ok) {
           const profile = await response.json();
-          
+
           // If onboarding already completed and NOT in edit mode, redirect to dashboard
-          if (profile.onboardingCompleted && !isEditMode) {
+          if (profile.onboardingCompleted && !isEditModeFromUrl) {
             updateUser({ onboardingCompleted: true });
             navigate('/dashboard');
             return;
           }
-          
+
           // Pre-fill form with existing data
           setFormData(prev => ({
             ...prev,
@@ -166,7 +173,7 @@ const OnboardingPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-    
+
     checkAndLoadProfile();
   }, [user?.email, navigate, updateUser]);
 
@@ -199,11 +206,15 @@ const OnboardingPage: React.FC = () => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/extension/profile`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           ...formData,
           email: user?.email,
@@ -211,12 +222,12 @@ const OnboardingPage: React.FC = () => {
           onboardingCompleted: true
         })
       });
-      
+
       if (!response.ok) throw new Error('Failed to save profile');
-      
+
       // Update local user state to mark onboarding as complete
       updateUser({ onboardingCompleted: true });
-      
+
       navigate(isEditMode ? '/settings' : '/dashboard');
     } catch (err) {
       setError('Failed to save your profile. Please try again.');
@@ -232,13 +243,13 @@ const OnboardingPage: React.FC = () => {
           <div className="onboarding-step">
             <h2>👋 Let's get to know you</h2>
             <p className="step-description">This info will be used to auto-fill job applications.</p>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>First Name *</label>
-                <input 
-                  type="text" 
-                  name="firstName" 
+                <input
+                  type="text"
+                  name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="John"
@@ -247,9 +258,9 @@ const OnboardingPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label>Last Name *</label>
-                <input 
-                  type="text" 
-                  name="lastName" 
+                <input
+                  type="text"
+                  name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Doe"
@@ -257,36 +268,36 @@ const OnboardingPage: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div className="form-group">
               <label>Phone Number *</label>
-              <input 
-                type="tel" 
-                name="phone" 
+              <input
+                type="tel"
+                name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="(555) 123-4567"
                 required
               />
             </div>
-            
+
             <div className="form-group">
               <label>LinkedIn Profile</label>
-              <input 
-                type="url" 
-                name="linkedInUrl" 
+              <input
+                type="url"
+                name="linkedInUrl"
                 value={formData.linkedInUrl}
                 onChange={handleChange}
                 placeholder="https://linkedin.com/in/yourprofile"
               />
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>GitHub Profile</label>
-                <input 
-                  type="url" 
-                  name="githubUrl" 
+                <input
+                  type="url"
+                  name="githubUrl"
                   value={formData.githubUrl}
                   onChange={handleChange}
                   placeholder="https://github.com/username"
@@ -294,9 +305,9 @@ const OnboardingPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label>Portfolio Website</label>
-                <input 
-                  type="url" 
-                  name="portfolioUrl" 
+                <input
+                  type="url"
+                  name="portfolioUrl"
                   value={formData.portfolioUrl}
                   onChange={handleChange}
                   placeholder="https://yourportfolio.com"
@@ -305,30 +316,30 @@ const OnboardingPage: React.FC = () => {
             </div>
           </div>
         );
-        
+
       case 2:
         return (
           <div className="onboarding-step">
             <h2>📍 Where are you located?</h2>
             <p className="step-description">Your location helps match you with relevant opportunities.</p>
-            
+
             <div className="form-group">
               <label>Street Address</label>
-              <input 
-                type="text" 
-                name="address" 
+              <input
+                type="text"
+                name="address"
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="123 Main Street"
               />
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>City *</label>
-                <input 
-                  type="text" 
-                  name="city" 
+                <input
+                  type="text"
+                  name="city"
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="San Francisco"
@@ -337,9 +348,9 @@ const OnboardingPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label>State *</label>
-                <input 
-                  type="text" 
-                  name="state" 
+                <input
+                  type="text"
+                  name="state"
                   value={formData.state}
                   onChange={handleChange}
                   placeholder="CA"
@@ -347,13 +358,13 @@ const OnboardingPage: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>ZIP Code</label>
-                <input 
-                  type="text" 
-                  name="zipCode" 
+                <input
+                  type="text"
+                  name="zipCode"
                   value={formData.zipCode}
                   onChange={handleChange}
                   placeholder="94102"
@@ -371,48 +382,71 @@ const OnboardingPage: React.FC = () => {
             </div>
           </div>
         );
-        
+
       case 3:
         return (
           <div className="onboarding-step">
             <h2>🛂 Work Authorization</h2>
             <p className="step-description">Many applications ask about your eligibility to work.</p>
-            
+
             <div className="form-group checkbox-group">
               <label className="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  name="isUsCitizen" 
+                <input
+                  type="checkbox"
+                  name="isUsCitizen"
                   checked={formData.isUsCitizen}
                   onChange={handleChange}
                 />
                 <span>I am a U.S. Citizen</span>
               </label>
             </div>
-            
+
             {!formData.isUsCitizen && (
               <>
                 <div className="form-group">
                   <label>Work Authorization Status</label>
                   <select name="workAuthorization" value={formData.workAuthorization} onChange={handleChange}>
                     <option value="">Select...</option>
-                    <option value="Green Card">Green Card / Permanent Resident</option>
-                    <option value="H1B">H-1B Visa</option>
-                    <option value="OPT">OPT (Optional Practical Training)</option>
-                    <option value="CPT">CPT (Curricular Practical Training)</option>
-                    <option value="L1">L-1 Visa</option>
-                    <option value="TN">TN Visa</option>
-                    <option value="E2">E-2 Visa</option>
-                    <option value="Other">Other Work Visa</option>
-                    <option value="None">No Current Authorization</option>
+                    <optgroup label="Permanent Authorization">
+                      <option value="Green Card">Green Card / Permanent Resident</option>
+                      <option value="Asylee/Refugee">Asylee / Refugee</option>
+                    </optgroup>
+                    <optgroup label="Work Visas">
+                      <option value="H1B">H-1B Visa</option>
+                      <option value="H1B1">H-1B1 Visa (Chile/Singapore)</option>
+                      <option value="H4 EAD">H-4 EAD (H-4 with Work Authorization)</option>
+                      <option value="L1">L-1 Visa (Intracompany Transfer)</option>
+                      <option value="L2 EAD">L-2 EAD (L-2 with Work Authorization)</option>
+                      <option value="O1">O-1 Visa (Extraordinary Ability)</option>
+                      <option value="TN">TN Visa (USMCA/NAFTA)</option>
+                      <option value="E1">E-1 Visa (Treaty Trader)</option>
+                      <option value="E2">E-2 Visa (Treaty Investor)</option>
+                      <option value="E3">E-3 Visa (Australian Specialty)</option>
+                    </optgroup>
+                    <optgroup label="Student/Training Visas">
+                      <option value="F1 OPT">F-1 OPT (Optional Practical Training)</option>
+                      <option value="F1 STEM OPT">F-1 STEM OPT Extension</option>
+                      <option value="F1 CPT">F-1 CPT (Curricular Practical Training)</option>
+                      <option value="J1">J-1 Visa (Exchange Visitor)</option>
+                      <option value="J1 Academic Training">J-1 Academic Training</option>
+                      <option value="M1">M-1 Visa (Vocational Student)</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="EAD">EAD (Employment Authorization Document)</option>
+                      <option value="Pending Adjustment">Pending Adjustment of Status</option>
+                      <option value="DACA">DACA</option>
+                      <option value="TPS">TPS (Temporary Protected Status)</option>
+                      <option value="Other">Other Work Authorization</option>
+                      <option value="None">No Current Authorization</option>
+                    </optgroup>
                   </select>
                 </div>
-                
+
                 <div className="form-group checkbox-group">
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      name="requiresSponsorship" 
+                    <input
+                      type="checkbox"
+                      name="requiresSponsorship"
                       checked={formData.requiresSponsorship}
                       onChange={handleChange}
                     />
@@ -423,30 +457,30 @@ const OnboardingPage: React.FC = () => {
             )}
           </div>
         );
-        
+
       case 4:
         return (
           <div className="onboarding-step">
             <h2>💼 Job Preferences</h2>
             <p className="step-description">Tell us what you're looking for in your next role.</p>
-            
+
             <div className="form-group">
               <label>Desired Job Title</label>
-              <input 
-                type="text" 
-                name="desiredJobTitle" 
+              <input
+                type="text"
+                name="desiredJobTitle"
                 value={formData.desiredJobTitle}
                 onChange={handleChange}
                 placeholder="Software Engineer"
               />
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>Desired Salary</label>
-                <input 
-                  type="text" 
-                  name="desiredSalary" 
+                <input
+                  type="text"
+                  name="desiredSalary"
                   value={formData.desiredSalary}
                   onChange={handleChange}
                   placeholder="$100,000"
@@ -464,19 +498,19 @@ const OnboardingPage: React.FC = () => {
                 </select>
               </div>
             </div>
-            
+
             <div className="form-group checkbox-group">
               <label className="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  name="willingToRelocate" 
+                <input
+                  type="checkbox"
+                  name="willingToRelocate"
                   checked={formData.willingToRelocate}
                   onChange={handleChange}
                 />
                 <span>I am willing to relocate</span>
               </label>
             </div>
-            
+
             <div className="form-group">
               <label>When can you start?</label>
               <select name="availableStartDate" value={formData.availableStartDate} onChange={handleChange}>
@@ -488,7 +522,7 @@ const OnboardingPage: React.FC = () => {
                 <option value="3+ months">3+ months</option>
               </select>
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>Highest Degree</label>
@@ -504,22 +538,22 @@ const OnboardingPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label>Major / Field of Study</label>
-                <input 
-                  type="text" 
-                  name="major" 
+                <input
+                  type="text"
+                  name="major"
                   value={formData.major}
                   onChange={handleChange}
                   placeholder="Computer Science"
                 />
               </div>
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>University / School</label>
-                <input 
-                  type="text" 
-                  name="university" 
+                <input
+                  type="text"
+                  name="university"
                   value={formData.university}
                   onChange={handleChange}
                   placeholder="Stanford University"
@@ -527,9 +561,9 @@ const OnboardingPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label>Graduation Year</label>
-                <input 
-                  type="text" 
-                  name="graduationYear" 
+                <input
+                  type="text"
+                  name="graduationYear"
                   value={formData.graduationYear}
                   onChange={handleChange}
                   placeholder="2023"
@@ -538,7 +572,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           </div>
         );
-        
+
       case 5:
         return (
           <div className="onboarding-step">
@@ -547,7 +581,7 @@ const OnboardingPage: React.FC = () => {
               Many applications ask these for Equal Employment Opportunity reporting.
               All fields are optional and you can choose "Prefer not to say".
             </p>
-            
+
             <div className="form-group">
               <label>Veteran Status</label>
               <select name="veteranStatus" value={formData.veteranStatus} onChange={handleChange}>
@@ -556,7 +590,7 @@ const OnboardingPage: React.FC = () => {
                 <option value="No">No, I am not a veteran</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>Disability Status</label>
               <select name="disabilityStatus" value={formData.disabilityStatus} onChange={handleChange}>
@@ -565,7 +599,7 @@ const OnboardingPage: React.FC = () => {
                 <option value="No">No, I don't have a disability</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>Gender</label>
               <select name="gender" value={formData.gender} onChange={handleChange}>
@@ -576,7 +610,7 @@ const OnboardingPage: React.FC = () => {
                 <option value="Other">Other</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>Race / Ethnicity</label>
               <select name="ethnicity" value={formData.ethnicity} onChange={handleChange}>
@@ -590,7 +624,7 @@ const OnboardingPage: React.FC = () => {
                 <option value="Two or More Races">Two or More Races</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>Do you identify as LGBTQ+?</label>
               <select name="lgbtqIdentity" value={formData.lgbtqIdentity} onChange={handleChange}>
@@ -601,7 +635,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           </div>
         );
-        
+
       default:
         return null;
     }
@@ -624,19 +658,19 @@ const OnboardingPage: React.FC = () => {
     <div className="onboarding-container">
       <div className="onboarding-card">
         <div className="progress-bar">
-          <div 
-            className="progress-fill" 
+          <div
+            className="progress-fill"
             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
           />
         </div>
         <div className="step-indicator">
           Step {currentStep} of {totalSteps}
         </div>
-        
+
         {error && <div className="error-message">{error}</div>}
-        
+
         {renderStep()}
-        
+
         <div className="button-row">
           {currentStep > 1 && (
             <button type="button" className="btn-secondary" onClick={prevStep}>
@@ -648,9 +682,9 @@ const OnboardingPage: React.FC = () => {
               Continue →
             </button>
           ) : (
-            <button 
-              type="button" 
-              className="btn-primary btn-submit" 
+            <button
+              type="button"
+              className="btn-primary btn-submit"
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
@@ -658,12 +692,12 @@ const OnboardingPage: React.FC = () => {
             </button>
           )}
         </div>
-        
+
         {/* Skip / Cancel button */}
         {!isEditMode && (
           <div className="skip-section">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn-skip"
               onClick={handleSkipOnboarding}
             >
@@ -672,11 +706,11 @@ const OnboardingPage: React.FC = () => {
             <p className="skip-note">You can complete your profile later in Settings</p>
           </div>
         )}
-        
+
         {isEditMode && (
           <div className="skip-section">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn-skip"
               onClick={() => navigate('/settings')}
             >

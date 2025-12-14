@@ -452,6 +452,56 @@
   resize: vertical;
 }
 
+/* Edit Preferences Section */
+.edit-preferences-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: rgba(88, 166, 255, 0.05);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.preferences-info h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 0 0 4px;
+}
+
+.preferences-info p {
+  font-size: 13px;
+  color: #8b949e;
+  margin: 0;
+}
+
+.btn-edit-preferences {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #58a6ff;
+  color: #0d1117;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-edit-preferences:hover {
+  background: #79b8ff;
+  transform: translateY(-1px);
+}
+
+.btn-edit-preferences svg {
+  flex-shrink: 0;
+}
+
 .form-actions {
   display: flex;
   gap: 12px;

@@ -247,21 +247,22 @@ public class ExtensionController {
      */
     @PutMapping("/profile")
     public ResponseEntity<UserProfileDto> saveProfile(@RequestBody UserProfileDto dto, HttpServletRequest httpRequest) {
-        User currentUser = getCurrentUser(httpRequest);
-        if (currentUser == null) {
+        // Support both JWT auth and email from request body
+        String userEmail = getUserEmail(httpRequest, dto.getEmail());
+        if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
 
-        log.info("Saving profile for user: {}", currentUser.getEmail());
+        log.info("Saving profile for user: {}", userEmail);
 
-        UserProfileDocument doc = userProfileRepository.findByEmail(currentUser.getEmail())
+        UserProfileDocument doc = userProfileRepository.findByEmail(userEmail)
                 .orElseGet(UserProfileDocument::new);
 
         // Update fields
         doc.setGoogleId(dto.getGoogleId());
         doc.setFirstName(dto.getFirstName());
         doc.setLastName(dto.getLastName());
-        doc.setEmail(currentUser.getEmail());
+        doc.setEmail(userEmail);
         doc.setPhone(dto.getPhone());
         doc.setLinkedInUrl(dto.getLinkedInUrl());
         doc.setGithubUrl(dto.getGithubUrl());
@@ -294,7 +295,7 @@ public class ExtensionController {
         doc.setUpdatedAt(Instant.now());
 
         UserProfileDocument saved = userProfileRepository.save(doc);
-        log.info("Profile saved successfully for user: {}", currentUser.getEmail());
+        log.info("Profile saved successfully for user: {}", userEmail);
         return ResponseEntity.ok(toDto(saved));
     }
 
