@@ -120,8 +120,14 @@ const OnboardingPage: React.FC = () => {
       }
 
       try {
+        const token = localStorage.getItem('auth_token');
         const response = await fetch(
-          `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(user.email)}`
+          `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(user.email)}`,
+          {
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+          }
         );
 
         if (response.ok) {

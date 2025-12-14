@@ -23,7 +23,12 @@ const HomePage: React.FC = () => {
         let onboardingCompleted = false;
         try {
           const profileResponse = await fetch(
-            `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(decoded.email)}`
+            `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(decoded.email)}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${response.credential}`
+              }
+            }
           );
           if (profileResponse.ok) {
             const profile = await profileResponse.json();

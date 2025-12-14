@@ -19,7 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationFilter.class);
-    
+
     private final GoogleAuthService googleAuthService;
 
     public AuthenticationFilter(GoogleAuthService googleAuthService) {
@@ -29,42 +29,73 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
-        String path = request.getRequestURI();
-        
-        // Skip authentication for health check and sample endpoints
-        if (path.contains("/health") || path.contains("/sample")) {
+
+        // Skip preflight OPTIONS requests (CORS)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
-        
+
+        String path = request.getRequestURI();
+
+        // Skip authentication for public endpoints
+        if (isPublicPath(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Get Authorization header
         String authHeader = request.getHeader("Authorization");
         log.debug("Path: {}, Authorization header present: {}", path, authHeader != null);
-        
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            log.debug("Token length: {}", token.length());
-            
-            try {
-                // Verify token and extract user info
-                User user = googleAuthService.verifyToken(token);
-                
-                if (user != null) {
-                    // Set user in request attribute for controllers to use
-                    request.setAttribute("currentUser", user);
-                    log.info("✅ Authenticated user: {} for path: {}", user.getEmail(), path);
-                } else {
-                    log.warn("❌ Invalid token for path: {}", path);
-                }
-            } catch (Exception e) {
-                log.error("❌ Error verifying token for path {}: {}", path, e.getMessage(), e);
-            }
-        } else {
+
+        // Check if Authorization header exists and has Bearer token
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.warn("❌ No Bearer token provided for path: {}", path);
+            sendUnauthorized(response, "Missing or invalid Authorization header");
+            return;
         }
-        
-        // Always continue to controller - let controller decide if auth is required
-        filterChain.doFilter(request, response);
+
+        String token = authHeader.substring(7);
+        log.debug("Token length: {}", token.length());
+
+        try {
+            // Verify token and extract user info
+            User user = googleAuthService.verifyToken(token);
+
+            if (user == null) {
+                log.warn("❌ Invalid token for path: {}", path);
+                sendUnauthorized(response, "Invalid or expired token");
+                return;
+            }
+
+            // Set user in request attribute for controllers to use
+            request.setAttribute("currentUser", user);
+            log.info("✅ Authenticated user: {} for path: {}", user.getEmail(), path);
+
+            // Continue to controller
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            log.error("❌ Error verifying token for path {}: {}", path, e.getMessage());
+            sendUnauthorized(response, "Token verification failed");
+        }
+    }
+
+    /**
+     * Check if the path is public (no authentication required)
+     */
+    private boolean isPublicPath(String path) {
+        return path.contains("/health")
+                || path.contains("/sample")
+                || path.contains("/api/auth/"); // Auth endpoints are public
+    }
+
+    /**
+     * Send 401 Unauthorized response
+     */
+    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + message + "\"}");
     }
 }
