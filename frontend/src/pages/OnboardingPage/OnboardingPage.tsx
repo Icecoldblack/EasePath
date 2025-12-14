@@ -241,7 +241,7 @@ const OnboardingPage: React.FC = () => {
       case 1:
         return (
           <div className="onboarding-step">
-            <h2>👋 Let's get to know you</h2>
+            <h2> Let's get to know you</h2>
             <p className="step-description">This info will be used to auto-fill job applications.</p>
 
             <div className="form-row">
@@ -513,14 +513,12 @@ const OnboardingPage: React.FC = () => {
 
             <div className="form-group">
               <label>When can you start?</label>
-              <select name="availableStartDate" value={formData.availableStartDate} onChange={handleChange}>
-                <option value="">Select...</option>
-                <option value="Immediately">Immediately</option>
-                <option value="2 weeks">2 weeks notice</option>
-                <option value="1 month">1 month</option>
-                <option value="2 months">2 months</option>
-                <option value="3+ months">3+ months</option>
-              </select>
+              <input
+                type="date"
+                name="availableStartDate"
+                value={formData.availableStartDate}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="form-row">
