@@ -488,11 +488,11 @@ body,
 
 /* Bar Chart Styles */
 .line-chart-container {
-  height: 220px;
+  height: 200px;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  padding: 20px 0 0;
+  gap: 12px;
+  padding: 20px 10px 0;
 }
 
 .chart-bar-wrapper {
@@ -500,12 +500,14 @@ body,
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
   height: 100%;
+  min-width: 30px;
 }
 
 .chart-bar {
   width: 100%;
-  background: linear-gradient(180deg, #1e3a5f 0%, #0d1420 100%);
+  background: #3d4f69;
   border-radius: 6px 6px 0 0;
   min-height: 10px;
   transition: all 0.3s ease;
@@ -513,7 +515,25 @@ body,
 }
 
 .chart-bar:hover {
-  background: linear-gradient(180deg, var(--accent-blue) 0%, #1e3a5f 100%);
+  background: #4a6eb5;
+}
+
+.chart-bar.has-data {
+  background: #214374;
+}
+
+.chart-bar.has-data::after {
+  background: #58a6ff;
+  opacity: 1;
+}
+
+.chart-bar.no-data {
+  background: #2a3544;
+  opacity: 0.7;
+}
+
+.chart-bar.no-data::after {
+  background: rgba(88, 166, 255, 0.4);
 }
 
 .chart-bar::after {

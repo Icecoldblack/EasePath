@@ -113,35 +113,84 @@ const DashboardPage: React.FC = () => {
     .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
     .slice(0, 5);
 
-  // Generate activity data for bar chart based on real applications
+  // Generate activity data for bar chart based on period and real applications
   const getActivityData = () => {
-    if (applications.length === 0) {
-      return [0, 0, 0, 0, 0, 0, 0];
-    }
-
-    // Get last 7 days of data
-    const days: number[] = [];
+    const counts: number[] = [];
+    const labels: string[] = [];
     const now = new Date();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    for (let i = 6; i >= 0; i--) {
-      const dayStart = new Date(now.getTime() - (i + 1) * 24 * 60 * 60 * 1000);
-      const dayEnd = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    if (chartPeriod === 'Week') {
+      // Current week: Sunday to Saturday
+      const dayLabelsWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-      const count = applications.filter(app => {
-        const appDate = new Date(app.appliedAt);
-        return appDate >= dayStart && appDate < dayEnd;
-      }).length;
+      // Find the start of the current week (Sunday)
+      const currentDay = now.getDay(); // 0 = Sunday
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - currentDay);
+      weekStart.setHours(0, 0, 0, 0);
 
-      days.push(count);
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + i);
+        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+        const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+
+        const count = applications.filter(app => {
+          const appDate = new Date(app.appliedAt);
+          return appDate >= dayStart && appDate <= dayEnd;
+        }).length;
+
+        counts.push(count);
+        labels.push(dayLabelsWeek[i]);
+      }
+    } else if (chartPeriod === 'Month') {
+      // Last 4 weeks
+      for (let i = 3; i >= 0; i--) {
+        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+        const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const count = applications.filter(app => {
+          const appDate = new Date(app.appliedAt);
+          return appDate >= weekStart && appDate <= weekEnd;
+        }).length;
+
+        counts.push(count);
+        labels.push(`Week ${4 - i}`);
+      }
+    } else {
+      // Year - last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59);
+
+        const count = applications.filter(app => {
+          const appDate = new Date(app.appliedAt);
+          return appDate >= monthStart && appDate <= monthEnd;
+        }).length;
+
+        counts.push(count);
+        labels.push(monthNames[monthDate.getMonth()]);
+      }
     }
 
-    // Normalize to percentages (max 100%)
-    const maxCount = Math.max(...days, 1);
-    return days.map(count => Math.round((count / maxCount) * 100) || 10);
+    // Calculate percentages
+    const maxCount = Math.max(...counts, 1);
+    const hasData = counts.some(c => c > 0);
+
+    const percentages = counts.map(count => {
+      if (!hasData) return 15; // Show placeholder bars when no data
+      return count > 0 ? Math.max(Math.round((count / maxCount) * 100), 15) : 8;
+    });
+
+    return { data: percentages, labels, rawCounts: counts, hasData, maxCount };
   };
 
-  const activityData = getActivityData();
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const chartInfo = getActivityData();
+  const activityData = chartInfo.data;
+  const dayLabels = chartInfo.labels;
 
   const handleNavClick = (nav: string, path: string) => {
     setActiveNav(nav);
@@ -415,15 +464,29 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="line-chart-container">
               {activityData.map((height, i) => (
-                <div key={i} className="chart-bar-wrapper">
+                <motion.div
+                  key={i}
+                  className="chart-bar-wrapper"
+                  title={`${chartInfo.rawCounts[i]} application${chartInfo.rawCounts[i] !== 1 ? 's' : ''}`}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <motion.div
-                    className="chart-bar"
-                    initial={{ height: 0 }}
-                    animate={{ height: `${height}%` }}
-                    transition={{ duration: 0.5, delay: 0.6 + i * 0.05 }}
+                    className={`chart-bar ${chartInfo.rawCounts[i] > 0 ? 'has-data' : 'no-data'}`}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: `${height}%`, opacity: 1 }}
+                    whileHover={{
+                      scaleX: 1.1,
+                      filter: "brightness(1.3)",
+                      transition: { duration: 0.2 }
+                    }}
+                    transition={{
+                      duration: 0.5,
+                      delay: 0.6 + i * 0.05
+                    }}
                   />
                   <span className="chart-bar-label">{dayLabels[i]}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
