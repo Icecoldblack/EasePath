@@ -26,24 +26,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
 
   const login = (userData: User) => {
-    localStorage.setItem('user', JSON.stringify(userData));
+    // Check if user has a custom profile picture stored (by email)
+    const customPicture = localStorage.getItem(`easepath_pfp_${userData.email}`);
+    const finalUserData = customPicture
+      ? { ...userData, picture: customPicture }
+      : userData;
+
+    localStorage.setItem('user', JSON.stringify(finalUserData));
     // Also store email separately for extension sync
-    localStorage.setItem('easepath_user_email', userData.email);
+    localStorage.setItem('easepath_user_email', finalUserData.email);
     setIsAuthenticated(true);
-    setUser(userData);
+    setUser(finalUserData);
   };
 
   const logout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('easepath_user_email');
+    // Note: We keep the custom profile picture stored by email so it persists
     setIsAuthenticated(false);
     setUser(null);
   };
-  
+
   const updateUser = (updates: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
       localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      // If updating picture, also store it separately by email for persistence across logins
+      if (updates.picture && user.email) {
+        localStorage.setItem(`easepath_pfp_${user.email}`, updates.picture);
+      }
+
       setUser(updatedUser);
     }
   };

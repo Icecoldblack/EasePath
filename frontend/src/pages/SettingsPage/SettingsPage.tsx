@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -8,8 +8,11 @@ import epIcon from '../../../EPlogosmall.png';
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { theme } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   // Main app sidebar state (collapsed by default for settings page to give more space)
   const [activeNav, setActiveNav] = useState('settings');
@@ -44,6 +47,63 @@ const SettingsPage: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setPhotoError('Please select a JPG, PNG, or GIF image');
+      return;
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('Image size must be less than 2MB');
+      return;
+    }
+
+    setPhotoError(null);
+
+    // Convert to base64 and save
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      updateUser({ picture: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveChanges = () => {
+    // Update the user's name in AuthContext/localStorage
+    const fullName = `${profileData.firstName} ${profileData.lastName}`.trim();
+    updateUser({ name: fullName });
+
+    // Save other profile data to localStorage
+    localStorage.setItem('easepath_profile', JSON.stringify({
+      bio: profileData.bio,
+      location: profileData.location,
+      phone: profileData.phone
+    }));
+
+    setSaveMessage('Changes saved successfully!');
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
+
+  const handleCancel = () => {
+    // Reset to original values
+    setProfileData({
+      firstName: user?.name?.split(' ')[0] || '',
+      lastName: user?.name?.split(' ').slice(1).join(' ') || '',
+      email: user?.email || '',
+      bio: 'Passionate software engineer with 5+ years of experience in building scalable web applications.',
+      location: 'San Francisco, CA',
+      phone: '+1 (555) 123-4567'
+    });
+    setSaveMessage(null);
   };
 
   const menuItems = [
@@ -107,11 +167,28 @@ const SettingsPage: React.FC = () => {
 
             <div className="profile-photo-section">
               <div className="profile-avatar-large">
-                {user?.name?.substring(0, 2).toUpperCase() || 'UN'}
+                {user?.picture ? (
+                  <img src={user.picture} alt="Profile" />
+                ) : (
+                  user?.name?.substring(0, 2).toUpperCase() || 'UN'
+                )}
               </div>
               <div className="photo-actions">
-                <button className="btn-primary-small">Change Photo</button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/jpeg,image/png,image/gif"
+                  onChange={handlePhotoChange}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  className="btn-primary-small"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Change Photo
+                </button>
                 <span className="photo-hint">JPG, PNG or GIF. Max size 2MB</span>
+                {photoError && <span className="photo-error">{photoError}</span>}
               </div>
             </div>
 
@@ -173,27 +250,10 @@ const SettingsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Application Preferences Section */}
-              <div className="edit-preferences-section">
-                <div className="preferences-info">
-                  <h3>Application Preferences</h3>
-                  <p>Update your work authorization, visa status, job preferences, and EEO information.</p>
-                </div>
-                <button
-                  className="btn-edit-preferences"
-                  onClick={() => navigate('/onboarding?edit=true')}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  Edit Preferences
-                </button>
-              </div>
-
               <div className="form-actions">
-                <button className="btn-secondary">Cancel</button>
-                <button className="settings-btn-save">Save Changes</button>
+                {saveMessage && <span className="save-message success">{saveMessage}</span>}
+                <button className="btn-secondary" onClick={handleCancel}>Cancel</button>
+                <button className="settings-btn-save" onClick={handleSaveChanges}>Save Changes</button>
               </div>
             </div>
           </div>
@@ -266,6 +326,32 @@ const SettingsPage: React.FC = () => {
                   <span className="slider round"></span>
                 </label>
               </div>
+            </div>
+          </div>
+        );
+
+      case 'preferences':
+        return (
+          <div className="settings-panel-content">
+            <div className="panel-header">
+              <h2>Preferences</h2>
+            </div>
+
+            <div className="edit-preferences-section">
+              <div className="preferences-info">
+                <h3>Application Preferences</h3>
+                <p>Update your work authorization, visa status, job preferences, and EEO information.</p>
+              </div>
+              <button
+                className="btn-edit-preferences"
+                onClick={() => navigate('/onboarding?edit=true')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Edit Preferences
+              </button>
             </div>
           </div>
         );

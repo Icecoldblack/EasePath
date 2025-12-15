@@ -213,7 +213,11 @@ const AutoApplyPage: React.FC = () => {
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="user-avatar">
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
+              {user?.picture ? (
+                <img src={user.picture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                user?.name?.charAt(0).toUpperCase() || 'U'
+              )}
             </div>
             {!sidebarCollapsed && (
               <div className="user-info">

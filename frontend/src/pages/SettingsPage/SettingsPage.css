@@ -356,6 +356,24 @@
   font-size: 28px;
   font-weight: 700;
   color: white;
+  overflow: hidden;
+}
+
+.profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.photo-error {
+  color: #f85149;
+  font-size: 12px;
 }
 
 .photo-actions {
@@ -500,9 +518,19 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  align-items: center;
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #30363d;
+}
+
+.save-message {
+  font-size: 14px;
+  margin-right: auto;
+}
+
+.save-message.success {
+  color: #3fb950;
 }
 
 .btn-secondary {
