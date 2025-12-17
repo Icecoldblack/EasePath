@@ -610,7 +610,7 @@ const DashboardPage: React.FC = () => {
               <p className="empty-description">Start applying to jobs to see your progress here</p>
               <motion.button
                 className="empty-action"
-                onClick={() => navigate('/auto-apply')}
+                onClick={() => navigate('/jobs')}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
