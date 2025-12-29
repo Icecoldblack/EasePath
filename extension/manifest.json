@@ -22,6 +22,7 @@
       "matches": [
         "<all_urls>"
       ],
+      "_comment": "Scripts must load in this order due to dependencies: utils.js provides base functions used by all other scripts; dom-analyzer.js and ui.js provide DOM manipulation and UI functions; form-filler.js and ats-adapters.js use utils and DOM functions; content.js orchestrates everything and depends on all other scripts.",
       "js": [
         "scripts/utils.js",
         "scripts/dom-analyzer.js",

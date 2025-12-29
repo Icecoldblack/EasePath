@@ -661,9 +661,15 @@ public class ExtensionController {
             return ResponseEntity.status(500).body(errorResponse);
         }
 
-        // Truncate if needed
+        // Truncate if needed, respecting word boundaries
         if (request.getMaxLength() > 0 && aiResponse.length() > request.getMaxLength()) {
-            aiResponse = aiResponse.substring(0, request.getMaxLength());
+            int truncateAt = request.getMaxLength();
+            // Find the last space before the max length to avoid cutting words
+            int lastSpace = aiResponse.lastIndexOf(' ', truncateAt);
+            if (lastSpace > 0 && lastSpace > truncateAt - 50) { // Only use word boundary if it's reasonably close
+                truncateAt = lastSpace;
+            }
+            aiResponse = aiResponse.substring(0, truncateAt);
         }
 
         Map<String, Object> response = new HashMap<>();

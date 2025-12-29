@@ -1,6 +1,9 @@
 // EasePath Content Script - Main Entry Point
 // Orchestrates autofill, message handling, and submission tracking
 
+// Configuration
+const AUTOFILL_RESUME_DELAY_MS = 1500; // Delay before resuming autofill on page load
+
 console.log("EasePath: Content script loaded");
 
 // Listen for messages from the popup
@@ -71,7 +74,7 @@ async function checkAndResumeAutofill() {
 
         if (state.autofillInProgress) {
             console.log("EasePath: Resuming in-progress autofill...");
-            await sleep(1500);
+            await sleep(AUTOFILL_RESUME_DELAY_MS);
             performSmartAutofill(state.autoSubmitEnabled, (response) => {
                 console.log("EasePath: Resumed autofill completed:", response);
             });
@@ -86,7 +89,7 @@ async function checkAndResumeAutofill() {
  */
 async function performSmartAutofill(autoSubmit, sendResponse) {
     try {
-        showProcessingOverlay(' Scanning application form...');
+        showProcessingOverlay('Scanning application form...');
 
         const userProfile = await getStoredUserProfile();
 
@@ -213,12 +216,12 @@ async function performSmartAutofill(autoSubmit, sendResponse) {
 
         let autoSubmitted = false;
         if (autoSubmit && essayCount === 0) {
-            updateOverlay(' Submitting application...');
+            updateOverlay('Submitting application...');
             await sleep(1000);
             autoSubmitted = await tryAutoSubmit();
 
             if (autoSubmitted) {
-                showSuccessOverlay(' Application Submitted!');
+                showSuccessOverlay('Application Submitted!');
                 const jobInfo = extractJobInfoFromPage();
                 chrome.runtime.sendMessage({
                     action: "record_application",
@@ -244,10 +247,10 @@ async function performSmartAutofill(autoSubmit, sendResponse) {
                 essayQuestions: essayCount,
                 autoSubmitted: autoSubmitted,
                 message: autoSubmitted
-                    ? ` Application submitted! Completed ${totalActions} fields.`
+                    ? `Application submitted! Completed ${totalActions} fields.`
                     : essayCount > 0
                         ? `Filled ${totalActions} fields. ${essayCount} essay question(s) highlighted.`
-                        : ` Filled ${totalActions} fields successfully!`
+                        : `Filled ${totalActions} fields successfully!`
             });
         } else {
             sendResponse({
@@ -427,6 +430,7 @@ async function tryUploadResume() {
         console.log("EasePath: Resume response:", response ? "received" : "null", response?.fileName || "no filename", response?.error || "no error");
 
         if (response && response.fileData) {
+            console.log("EasePath: Converting base64 data to file...");
             const byteCharacters = atob(response.fileData);
             const byteNumbers = new Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
@@ -452,26 +456,45 @@ async function tryUploadResume() {
 
                 if (matchesAny(label + ' ' + inputName + ' ' + inputId, ['resume', 'cv', 'curriculum vitae', 'upload', 'file', 'document']) ||
                     acceptAttr.includes('pdf') || acceptAttr.includes('doc') || acceptAttr === '' || acceptAttr.includes('*')) {
-                    input.files = dataTransfer.files;
-                    nativeDispatchEvents(input);
-                    highlightElement(input);
-                    console.log("EasePath: ✓ Resume uploaded to:", inputName || inputId || "file input");
-                    return true;
+                    
+                    try {
+                        input.files = dataTransfer.files;
+                        nativeDispatchEvents(input);
+                        highlightElement(input);
+                        console.log("EasePath: ✓ Resume uploaded to:", inputName || inputId || "file input");
+                        return true;
+                    } catch (uploadError) {
+                        console.error("EasePath: Error setting files on input:", uploadError);
+                    }
                 }
             }
 
             // Fallback: use first file input
             console.log("EasePath: Using fallback - first file input");
-            fileInputs[0].files = dataTransfer.files;
-            nativeDispatchEvents(fileInputs[0]);
-            highlightElement(fileInputs[0]);
-            console.log("EasePath: ✓ Resume uploaded (fallback)");
-            return true;
+            try {
+                fileInputs[0].files = dataTransfer.files;
+                nativeDispatchEvents(fileInputs[0]);
+                highlightElement(fileInputs[0]);
+                console.log("EasePath: ✓ Resume uploaded (fallback)");
+                return true;
+            } catch (uploadError) {
+                console.error("EasePath: Error in fallback file upload:", uploadError);
+            }
+        } else if (response && response.error) {
+            console.error("EasePath: Backend returned error:", response.error);
+        } else if (!response) {
+            console.error("EasePath: No response from backend");
         } else {
-            console.log("EasePath: No resume data in response:", response?.error || "unknown error");
+            console.error("EasePath: Response missing fileData");
         }
     } catch (e) {
-        console.error("EasePath: Error uploading resume:", e);
+        if (e.name === 'InvalidCharacterError') {
+            console.error("EasePath: Invalid base64 data in resume file:", e);
+        } else if (e.message && e.message.includes('DataTransfer')) {
+            console.error("EasePath: DataTransfer API error:", e);
+        } else {
+            console.error("EasePath: Unexpected error uploading resume:", e);
+        }
     }
 
     return false;
@@ -550,7 +573,11 @@ document.addEventListener('submit', () => {
  * Generate an AI response for an essay question
  */
 async function generateEssayWithAI(question, jobTitle, companyName, maxLength) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('AI essay generation timed out after 30 seconds'));
+        }, 30000);
+
         chrome.runtime.sendMessage({
             action: "generate_essay_response",
             question: question,
@@ -558,6 +585,14 @@ async function generateEssayWithAI(question, jobTitle, companyName, maxLength) {
             companyName: companyName,
             maxLength: maxLength
         }, (response) => {
+            clearTimeout(timeout);
+            
+            if (chrome.runtime.lastError) {
+                console.error("EasePath: Chrome runtime error:", chrome.runtime.lastError);
+                resolve(null);
+                return;
+            }
+            
             if (response && response.success && response.response) {
                 resolve(response.response);
             } else {
