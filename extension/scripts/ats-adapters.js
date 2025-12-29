@@ -2,7 +2,13 @@
 // Specialized logic for common Applicant Tracking Systems
 
 /**
- * Specialized applier for common ATS platforms
+ * Apply platform-specific automation logic for supported ATS platforms.
+ *
+ * Dispatches to the appropriate platform handler based on the platform identifier.
+ *
+ * @param {string} platform - Identifier of the ATS platform (e.g., 'greenhouse', 'lever', 'workday').
+ * @param {Object} profile - Profile data used to populate form fields on the target platform.
+ * @returns {boolean} `true` if platform-specific logic was applied, `false` if the platform is not recognized.
  */
 async function applySpecializedATS(platform, profile) {
     console.log(`EasePath: Applying specialized logic for ${platform}`);
@@ -19,6 +25,14 @@ async function applySpecializedATS(platform, profile) {
     }
 }
 
+/**
+ * Apply Greenhouse-specific form-filling logic to the current page.
+ *
+ * Scans the document for education entries and additional/custom question fields, logs discovery of education entries, and fills empty inputs/selects/textareas with values derived from the provided profile. This function modifies the DOM and may write values into form controls.
+ *
+ * @param {Object} profile - Profile data used to derive values for form fields (e.g., name, contact, education).
+ * @returns {boolean} `true` when processing is finished.
+ */
 async function applyGreenhouseLogic(profile) {
     // Greenhouse often has required custom questions with specific selectors
     const educationEntries = document.querySelectorAll('.education-entry, [data-qa="education"]');
@@ -42,6 +56,12 @@ async function applyGreenhouseLogic(profile) {
     return true;
 }
 
+/**
+ * Apply form-filling and discovery logic specific to Lever-hosted application forms.
+ *
+ * @param {Object} profile - Applicant profile data used to derive or populate answers for Lever form fields.
+ * @returns {boolean} `true` if the page was processed (form inputs and opportunity questions were inspected), `false` otherwise.
+ */
 async function applyLeverLogic(profile) {
     // Lever uses specific class names for their form elements
     const leverInputs = document.querySelectorAll('.lever-application-form input, .lever-application-form select');
@@ -60,6 +80,14 @@ async function applyLeverLogic(profile) {
     return true;
 }
 
+/**
+ * Apply Workday-specific form-filling behaviors using values from the provided profile.
+ * @param {Object} profile - Profile data with keys used to populate Workday fields.
+ * @param {string} [profile.firstName] - First name to populate into matching Workday inputs.
+ * @param {string} [profile.lastName] - Last name to populate into matching Workday inputs.
+ * @param {string} [profile.email] - Email address to populate into matching Workday inputs.
+ * @param {string} [profile.phone] - Phone number to populate into matching Workday inputs.
+ * @returns {boolean} `true` if processing completed.
 async function applyWorkdayLogic(profile) {
     // Workday is notoriously difficult with nested structures
     console.log("EasePath: Applying Workday-specific logic");

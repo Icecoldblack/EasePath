@@ -54,6 +54,17 @@ public class ExtensionController {
     private final AnswerLearningService answerLearningService;
     private final com.easepath.backend.service.OpenAIService openAIService;
 
+    /**
+     * Construct an ExtensionController wired with the repositories and services required to handle
+     * extension API requests (autofill, feedback, profile/resume management, learning, and AI generation).
+     *
+     * @param userProfileRepository repository for storing and retrieving user profile documents
+     * @param resumeRepository repository for storing and retrieving resume documents
+     * @param jobApplicationRepository repository for storing and retrieving job application documents
+     * @param formMappingService service that analyzes forms and produces field-to-profile mappings
+     * @param answerLearningService service responsible for learning, retrieving, and recording answer data
+     * @param openAIService service used to generate AI-crafted answers and essays
+     */
     public ExtensionController(UserProfileRepository userProfileRepository,
             ResumeRepository resumeRepository,
             JobApplicationRepository jobApplicationRepository,
@@ -524,8 +535,14 @@ public class ExtensionController {
     }
 
     /**
-     * Record a job application submitted via the extension.
-     * Called when user fills and submits a job application.
+     * Record a job application for the authenticated user.
+     *
+     * Creates and persists a JobApplicationDocument from the provided request and returns a response map
+     * containing a success flag, the saved application ID, and a confirmation message.
+     *
+     * @param request contains jobTitle, companyName, jobUrl and an optional userEmail to record the application for
+     * @return a map with keys: "success" (`true` on success), "applicationId" (the saved document's id), and "message" (confirmation)
+     *         Returns HTTP 401 if the user cannot be resolved from the request or authentication context.
      */
     @PostMapping("/record-application")
     public ResponseEntity<Map<String, Object>> recordApplication(
@@ -571,6 +588,11 @@ public class ExtensionController {
         private String companyName;
         private int maxLength;
 
+        /**
+         * Retrieves the user's email address associated with this instance.
+         *
+         * @return the user's email address, or {@code null} if it is not set
+         */
         public String getUserEmail() {
             return userEmail;
         }
@@ -579,43 +601,89 @@ public class ExtensionController {
             this.userEmail = userEmail;
         }
 
+        /**
+         * Gets the essay prompt provided in the request.
+         *
+         * @return the question text, or `null` if not set
+         */
         public String getQuestion() {
             return question;
         }
 
+        /**
+         * Set the essay prompt for the generation request.
+         *
+         * @param question the user-provided prompt or question to generate the essay from
+         */
         public void setQuestion(String question) {
             this.question = question;
         }
 
+        /**
+         * Gets the job title associated with this request.
+         *
+         * @return the job title, or {@code null} if not set
+         */
         public String getJobTitle() {
             return jobTitle;
         }
 
+        /**
+         * Sets the job title associated with this request.
+         *
+         * @param jobTitle the job title to store; may be null or empty
+         */
         public void setJobTitle(String jobTitle) {
             this.jobTitle = jobTitle;
         }
 
+        /**
+         * Gets the company name.
+         *
+         * @return the company name, or null if not set
+         */
         public String getCompanyName() {
             return companyName;
         }
 
+        /**
+         * Set the company name.
+         *
+         * @param companyName the company name to assign
+         */
         public void setCompanyName(String companyName) {
             this.companyName = companyName;
         }
 
+        /**
+         * Maximum allowed length for generated essay responses.
+         *
+         * @return the maximum number of characters to return; a value less than or equal to 0 indicates no length limit
+         */
         public int getMaxLength() {
             return maxLength;
         }
 
+        /**
+         * Set the maximum allowed length for the generated essay response.
+         *
+         * @param maxLength the maximum number of characters for the generated response; values less than
+         *                  or equal to 0 disable truncation
+         */
         public void setMaxLength(int maxLength) {
             this.maxLength = maxLength;
         }
     }
 
     /**
-     * Generate an AI response for an essay question.
-     * Uses OpenAI to craft a professional answer based on user profile and job
-     * context.
+     * Generate an AI-crafted essay answer using the user's profile and optional job context.
+     *
+     * Uses the provided GenerateEssayRequest to produce an AI-written response informed by the
+     * user's stored profile and the optional job title and company name.
+     *
+     * @param request contains `userEmail`, `question`, optional `jobTitle`, optional `companyName`, and `maxLength` for truncation
+     * @param httpRequest used to resolve authenticated user when `userEmail` is not provided
+     * @return a map where a successful response includes keys `response` (the generated text) and `success` (`true`); on error the map contains `error` with a descriptive message and an appropriate HTTP status (400 when profile missing, 401 when unauthenticated, 503 when AI service unavailable, 500 when generation fails)
      */
     @PostMapping("/generate-essay")
     public ResponseEntity<Map<String, Object>> generateEssay(

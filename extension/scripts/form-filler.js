@@ -2,7 +2,8 @@
 // Core form filling logic for text inputs, dropdowns, radios, checkboxes
 
 /**
- * Get stored user profile from chrome.storage
+ * Retrieve the stored user profile from chrome.storage.local.
+ * @returns {Promise<Object|null>} The stored user profile object, or null if none is stored.
  */
 function getStoredUserProfile() {
     return new Promise((resolve) => {
@@ -13,7 +14,10 @@ function getStoredUserProfile() {
 }
 
 /**
- * Fill a text input element with a value
+ * Set a text input or textarea's value, trigger native input/change events, focus and highlight the element.
+ * @param {HTMLInputElement|HTMLTextAreaElement} element - The input or textarea element to fill.
+ * @param {string} value - The value to enter into the element.
+ * @returns {boolean} `true` if the element was filled successfully, `false` otherwise.
  */
 function fillTextInput(element, value) {
     if (!element || !value) return false;
@@ -46,7 +50,19 @@ function fillTextInput(element, value) {
 }
 
 /**
- * Determine the value for a text field based on its label/context
+ * Infer an appropriate text value for an input element from a user profile and the input's context.
+ *
+ * Uses the element's visible label, name, id, placeholder, ARIA label, autocomplete attribute, and class names
+ * to match common field patterns (names, contact, links, address, education, work, compensation, start date,
+ * location preferences, referral/source). Returns the corresponding profile value when a match is found.
+ *
+ * @param {HTMLInputElement|HTMLTextAreaElement} input - The form control whose value should be inferred.
+ * @param {Object} profile - User profile object containing potential field values.
+ *   Expected properties (any may be undefined): firstName, lastName, email, phone, linkedInUrl, githubUrl,
+ *   portfolioUrl, address, city, state, zipCode, country, university, highestDegree, major, graduationYear,
+ *   gpa, yearsOfExperience, currentCompany, currentTitle, desiredJobTitle, desiredSalary, availableStartDate,
+ *   preferredLocations.
+ * @returns {string|null} A string suitable for filling the field, or `null` if no suitable mapping was determined.
  */
 function determineFieldValue(input, profile) {
     const label = findLabelForInput(input);
@@ -136,7 +152,12 @@ function determineFieldValue(input, profile) {
 }
 
 /**
- * Fill ALL text-type inputs on the page
+ * Fill all visible, editable text-like form fields on the page using values inferred from the provided profile.
+ *
+ * Skips invisible, disabled, read-only, already-filled, hidden inputs and textarea fields classified as essay questions.
+ *
+ * @param {Object} profile - User profile object whose data is used to infer field values.
+ * @returns {number} The number of fields that were filled.
  */
 async function fillAllTextFields(profile) {
     let filled = 0;
@@ -172,7 +193,10 @@ async function fillAllTextFields(profile) {
 }
 
 /**
- * Fill ALL select dropdowns on the page
+ * Iterates visible, enabled select elements on the page and attempts to fill each eligible dropdown using the provided profile.
+ *
+ * @param {Object} profile - User profile data used to determine appropriate option values (e.g., name, email, address, work/education details).
+ * @returns {number} The number of select elements that were successfully filled.
  */
 async function fillAllDropdowns(profile) {
     let filled = 0;
@@ -197,8 +221,13 @@ async function fillAllDropdowns(profile) {
 }
 
 /**
- * Click ALL relevant radio buttons and checkboxes
- */
+ * Clicks applicable radio buttons, checkboxes, and styled Yes/No controls based on the provided profile.
+ * 
+ * Iterates radio groups, visible unchecked checkboxes, and custom Yes/No button pairs, using profile-driven
+ * decision logic to determine which controls to activate. Marks checkboxes it fills to avoid re-filling.
+ * 
+ * @param {Object} profile - The user profile used to infer answers for questions.
+ * @returns {number} The total number of controls that were clicked.
 async function clickAllOptions(profile) {
     let clicked = 0;
 
@@ -235,8 +264,12 @@ async function clickAllOptions(profile) {
 }
 
 /**
- * Find and click Yes/No styled button pairs
- * These are common in modern job portals where buttons/divs act as radio options
+ * Locate Yes/No style button pairs on the page and click the option that matches the user's profile.
+ *
+ * Scans button-like elements that present binary (Yes/No) choices, infers the desired answer from the provided profile, and clicks the matching button when it is visible and not already selected. Marks processed controls to avoid reprocessing.
+ *
+ * @param {Object} profile - User profile data used to determine Yes/No answers.
+ * @returns {number} The count of buttons that were clicked.
  */
 async function clickYesNoButtonPairs(profile) {
     let clicked = 0;
@@ -308,7 +341,15 @@ async function clickYesNoButtonPairs(profile) {
 }
 
 /**
- * Fill a select dropdown intelligently
+ * Selects an appropriate option for a dropdown based on the field's context and the provided user profile.
+ *
+ * Uses the select's associated label, name, and id to infer the field type (country, state, work authorization,
+ * education, experience, EEO questions, salary, availability, citizenship, etc.) and attempts to match an option
+ * using the profile value or a set of fallback patterns.
+ *
+ * @param {HTMLSelectElement} select - The dropdown element to fill.
+ * @param {Object} profile - User profile data used to determine the best matching option.
+ * @returns {boolean} `true` if the dropdown was filled (an option was selected and events dispatched), `false` otherwise.
  */
 async function fillSelectDropdown(select, profile) {
     const label = findLabelForInput(select);
@@ -429,7 +470,12 @@ async function fillSelectDropdown(select, profile) {
 }
 
 /**
- * Handle a radio button group
+ * Selects and clicks the radio option in a named group that matches a derived Yes/No answer from the group's question text.
+ *
+ * Infers a Yes/No answer from the group's contextual question using the provided profile, then scans each option's label/value for affirmative or negative cues and clicks the first matching option.
+ * @param {string} name - The `name` attribute of the radio group to process.
+ * @param {object} profile - User profile used to infer the appropriate Yes/No answer.
+ * @returns {Promise<boolean>} `true` if a radio option was clicked, `false` otherwise.
  */
 async function handleRadioGroup(name, profile) {
     const radios = document.querySelectorAll(`input[type="radio"][name="${name}"]`);
@@ -466,7 +512,12 @@ async function handleRadioGroup(name, profile) {
 }
 
 /**
- * Handle a checkbox
+ * Decides whether to check a checkbox based on the related question and user profile.
+ *
+ * Evaluates the checkbox's surrounding question context against the provided profile and clicks the checkbox when the inferred answer is affirmative.
+ * @param {HTMLInputElement} checkbox - The checkbox input element to evaluate and potentially click.
+ * @param {Object} profile - The user profile used to infer answers.
+ * @returns {boolean} `true` if the checkbox was clicked (checked), `false` otherwise.
  */
 async function handleCheckbox(checkbox, profile) {
     const question = findQuestionContext(checkbox);
@@ -481,7 +532,10 @@ async function handleCheckbox(checkbox, profile) {
 }
 
 /**
- * Determine Yes/No answer based on question text and profile
+ * Infer a Yes/No answer for a question based on its visible text and the provided user profile.
+ * @param {string} questionText - The question or label text to evaluate (may be taken from surrounding UI).
+ * @param {Object} profile - User profile containing fields used to decide answers (e.g., workAuthorization, requiresSponsorship, usCitizen/isUsCitizen, willingToRelocate, veteranStatus, disabilityStatus).
+ * @returns {boolean|null} `true` if the question should be answered Yes, `false` if it should be answered No, or `null` when the function cannot determine an appropriate answer.
  */
 function determineYesNoAnswer(questionText, profile) {
     const q = (questionText || '').toLowerCase();
@@ -577,7 +631,15 @@ function determineYesNoAnswer(questionText, profile) {
 }
 
 /**
- * Check if a textarea is an essay question
+ * Determine whether a textarea should be treated as an essay-style question.
+ *
+ * Uses the textarea's attributes and nearby label text to classify it as an essay
+ * (long-form) response field. Heuristics include large `minlength`/`maxlength`,
+ * multiple `rows`, and label phrases like "cover letter", "why do you want",
+ * "tell us about", or "describe".
+ *
+ * @param {HTMLTextAreaElement} textarea - The textarea element to evaluate.
+ * @returns {boolean} `true` if the textarea appears to be an essay question, `false` otherwise.
  */
 function isEssayTextarea(textarea) {
     const minLength = parseInt(textarea.getAttribute('minlength') || '0');

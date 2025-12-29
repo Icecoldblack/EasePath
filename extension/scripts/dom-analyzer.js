@@ -2,7 +2,15 @@
 // Functions for analyzing page content, detecting platforms, and collecting form fields
 
 /**
- * Analyze the page content to understand context
+ * Build a structured analysis of the current document describing page title, detected job metadata, platform, and section headings.
+ *
+ * @returns {Object} analysis - Collected page analysis.
+ * @property {string} analysis.pageTitle - The document.title value.
+ * @property {string|null} analysis.jobTitle - Detected job title text, or `null` if none found.
+ * @property {string|null} analysis.company - Detected company name text, or `null` if none found.
+ * @property {boolean} analysis.isJobApplication - `true` when the page text contains common application-related terms, `false` otherwise.
+ * @property {string} analysis.platform - Inferred platform identifier (e.g., 'greenhouse', 'lever', 'workday', or 'unknown').
+ * @property {string[]} analysis.sections - Array of section or fieldset heading texts found on the page.
  */
 function analyzePageContent() {
     const analysis = {
@@ -59,7 +67,10 @@ function analyzePageContent() {
 }
 
 /**
- * Detect the job application platform using URL and DOM markers
+ * Identify the job application platform for the current page.
+ *
+ * Determines the most likely platform by inspecting the page hostname and common DOM markers.
+ * @returns {string} One of: 'greenhouse', 'lever', 'workday', 'taleo', 'icims', 'linkedin', 'indeed', 'glassdoor', 'smartrecruiters', 'jobvite', 'ashby', 'breezy', 'bamboohr', 'successfactors', or 'unknown'.
  */
 function detectPlatform() {
     const hostname = window.location.hostname.toLowerCase();
@@ -89,7 +100,13 @@ function detectPlatform() {
 }
 
 /**
- * Find the label text associated with an input element
+ * Retrieve the human-readable label text associated with an input element.
+ *
+ * Attempts to resolve a label by checking for a <label for="...">, a wrapping <label>,
+ * `aria-labelledby`, `aria-label`, nearby sibling or parent label-like elements,
+ * the input's placeholder, and short ancestor text snippets.
+ * @param {HTMLElement|null} input - The input element to resolve the label for.
+ * @returns {string} The label text if found, otherwise an empty string.
  */
 function findLabelForInput(input) {
     if (!input) return '';
@@ -145,7 +162,11 @@ function findLabelForInput(input) {
 }
 
 /**
- * Find the question text associated with an element
+ * Gather nearby question or label text that provides context for a form element.
+ *
+ * Searches for explicit <label> associations, nearby ancestor headings/field labels, and preceding sibling text, then returns the collected context as a single lowercase string.
+ * @param {Element} element - The input or form element to find contextual question text for.
+ * @returns {string} A concatenated, lowercase string containing candidate question/label text related to the element, or an empty string if none found.
  */
 function findQuestionContext(element) {
     const searches = [];
@@ -181,7 +202,10 @@ function findQuestionContext(element) {
 }
 
 /**
- * Extract job title and company name from the current page
+ * Determine the job title and company name present on the current page.
+ *
+ * Returns detected values with sensible defaults when detection fails.
+ * @returns {{title: string, company: string}} An object containing `title` (detected job title or `'Unknown Position'`) and `company` (detected company name or `'Unknown Company'`).
  */
 function extractJobInfoFromPage() {
     const analysis = analyzePageContent();

@@ -2,7 +2,11 @@
 // Overlay, notifications, and visual feedback functions
 
 /**
- * Show processing overlay
+ * Display a processing overlay with a spinner and message.
+ *
+ * Removes any existing EasePath overlay, then creates and appends a fixed,
+ * styled overlay containing a spinner and the provided message.
+ * @param {string} message - The text to display inside the overlay.
  */
 function showProcessingOverlay(message) {
     hideOverlay(); // Remove any existing overlay
@@ -44,16 +48,35 @@ function showProcessingOverlay(message) {
     document.body.appendChild(overlay);
 }
 
+/**
+ * Update the visible overlay's message text.
+ *
+ * If an element with id "easepath-overlay-text" exists, its text content is replaced with the provided message; otherwise the function does nothing.
+ * @param {string} message - The text to display inside the overlay.
+ */
 function updateOverlay(message) {
     const text = document.getElementById('easepath-overlay-text');
     if (text) text.textContent = message;
 }
 
+/**
+ * Remove the EasePath overlay from the document if it exists.
+ *
+ * Finds the element with id 'easepath-overlay' and removes it from the DOM when present.
+ */
 function hideOverlay() {
     const overlay = document.getElementById('easepath-overlay');
     if (overlay) overlay.remove();
 }
 
+/**
+ * Show a transient success notification overlay with the provided message.
+ *
+ * Removes any existing overlay, displays a green success-styled overlay in the top-right of the page,
+ * and automatically hides the overlay after 3 seconds.
+ *
+ * @param {string} message - Message text to display inside the success overlay.
+ */
 function showSuccessOverlay(message) {
     hideOverlay();
 
@@ -88,6 +111,10 @@ function showSuccessOverlay(message) {
     setTimeout(hideOverlay, 3000);
 }
 
+/**
+ * Visually highlights each essay question element by applying an orange border, a light orange background, and rounded corners.
+ * @param {Array<{element: HTMLElement}>} essayQuestions - Array of objects whose `element` property is the DOM element to highlight; items without an `element` are skipped.
+ */
 function highlightEssayQuestions(essayQuestions) {
     essayQuestions.forEach(question => {
         const el = question.element;
@@ -99,6 +126,14 @@ function highlightEssayQuestions(essayQuestions) {
     });
 }
 
+/**
+ * Log a disabled notification about detected essay questions to the console.
+ *
+ * Currently this notification is disabled; the function records the number of
+ * detected essay questions using a console message for debugging or telemetry.
+ *
+ * @param {Array} essayQuestions - Array of detected essay question objects (only the count is used).
+ */
 function showEssayNotification(essayQuestions) {
     // Disabled - no longer showing the pink notification
     console.log("EasePath: Found", essayQuestions.length, "essay questions (notification disabled)");
