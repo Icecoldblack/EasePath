@@ -22,13 +22,9 @@ function nativeDispatchEvents(element) {
             tracker.setValue('');
         }
     } catch (e) {
-        // Ignore errors for internal React props in production,
-        // but log them in development to aid debugging of React integration.
-        if (typeof process !== 'undefined' &&
-            process.env &&
-            process.env.NODE_ENV === 'development') {
-            console.warn('EasePath: Error accessing React _valueTracker in nativeDispatchEvents:', e);
-        }
+        // Ignore errors for internal React props in production.
+        // Note: For debugging React integration in development, enable verbose logging
+        // in Chrome DevTools or use browser console filters.
     }
 }
 

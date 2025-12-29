@@ -46,6 +46,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class ExtensionController {
 
     private static final Logger log = LoggerFactory.getLogger(ExtensionController.class);
+    private static final int WORD_BOUNDARY_TOLERANCE = 50; // Characters to search back for word boundary when truncating
 
     private final UserProfileRepository userProfileRepository;
     private final ResumeRepository resumeRepository;
@@ -666,7 +667,7 @@ public class ExtensionController {
             int truncateAt = request.getMaxLength();
             // Find the last space before the max length to avoid cutting words
             int lastSpace = aiResponse.lastIndexOf(' ', truncateAt);
-            if (lastSpace > 0 && lastSpace > truncateAt - 50) { // Only use word boundary if it's reasonably close
+            if (lastSpace > 0 && lastSpace > truncateAt - WORD_BOUNDARY_TOLERANCE) { // Only use word boundary if it's reasonably close
                 truncateAt = lastSpace;
             }
             aiResponse = aiResponse.substring(0, truncateAt);
