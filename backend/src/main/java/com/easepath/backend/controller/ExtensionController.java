@@ -671,12 +671,7 @@ public class ExtensionController {
                 truncateAt = request.getMaxLength();
             }
             
-            aiResponse = aiResponse.substring(0, truncateAt).trim();
-            
-            // Add ellipsis if truncated
-            if (truncateAt < aiResponse.length()) {
-                aiResponse += "...";
-            }
+            aiResponse = aiResponse.substring(0, truncateAt).trim() + "...";
         }
 
         Map<String, Object> response = new HashMap<>();
