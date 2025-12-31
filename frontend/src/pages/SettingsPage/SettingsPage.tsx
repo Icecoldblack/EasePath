@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { checkAdminStatus } from '../../utils/adminService';
+import AdminPanel from './AdminPanel';
 import './SettingsPage.css';
 import epIcon from '../../../EPlogosmall.png';
 
@@ -20,6 +22,18 @@ const SettingsPage: React.FC = () => {
 
   // Settings specific state
   const [activeTab, setActiveTab] = useState('profile');
+
+  // Admin status for showing Privacy/Admin tab
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status on mount
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const adminStatus = await checkAdminStatus();
+      setIsAdmin(adminStatus);
+    };
+    checkAdmin();
+  }, []);
 
   // Profile Form State
   const [profileData, setProfileData] = useState({
@@ -356,6 +370,9 @@ const SettingsPage: React.FC = () => {
           </div>
         );
 
+      case 'privacy':
+        return <AdminPanel />;
+
       default:
         return (
           <div className="settings-panel-content placeholder">
@@ -435,16 +452,18 @@ const SettingsPage: React.FC = () => {
         <div className="settings-content-wrapper">
           {/* Settings Menu Sidebar */}
           <div className="settings-menu">
-            {menuItems.map(item => (
-              <button
-                key={item.id}
-                className={`settings-menu-item ${activeTab === item.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(item.id)}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
+            {menuItems
+              .filter(item => item.id !== 'privacy' || isAdmin)
+              .map(item => (
+                <button
+                  key={item.id}
+                  className={`settings-menu-item ${activeTab === item.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(item.id)}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
 
             {/* Sign Out Button */}
             <button className="settings-menu-item sign-out" onClick={handleLogout}>
