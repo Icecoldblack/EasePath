@@ -177,21 +177,24 @@ const HomePage: React.FC = () => {
 
         {/* Foreground content */}
         <div className="login-card">
-          <SplitText
-            text="Easepath"
-            className="login-logo"
-            delay={100}
-            duration={0.6}
-            ease="power3.out"
-            splitType="chars"
-            from={{ opacity: 0, y: 40 }}
-            to={{ opacity: 1, y: 0 }}
-            threshold={0.1}
-            tag="h2"
-            rootMargin="-100px"
-            textAlign="center"
-            onLetterAnimationComplete={handleAnimationComplete}
-          />
+          <h1 className="visually-hidden">EasePath</h1>
+          <div aria-hidden="true">
+            <SplitText
+              text="Easepath"
+              className="login-logo"
+              delay={100}
+              duration={0.6}
+              ease="power3.out"
+              splitType="chars"
+              from={{ opacity: 0, y: 40 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.1}
+              tag="h2"
+              rootMargin="-100px"
+              textAlign="center"
+              onLetterAnimationComplete={handleAnimationComplete}
+            />
+          </div>
           <h2>Welcome</h2>
           <p><b>The Easier way to apply and win</b></p>
 
