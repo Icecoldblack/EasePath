@@ -19,46 +19,132 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
 - **Job Application API** (`POST /api/apply`) that logs the request, scrapes job listings with Jsoup, simulates AI filtering, and emails users when manual prompts are detected.
 - **Browser Extension (EasePath Auto-Applier)**: 
   - **Smart Autofill**: Automatically detects and fills form fields (Text, Dropdown, Radio, Checkbox) using heuristics and user profile data.
+  - **ATS Platform Detection**: Automatically identifies and applies platform-specific logic for major Applicant Tracking Systems.
   - **Multi-Page Navigation**: Intelligently finds "Next" or "Continue" buttons to navigate through multi-step applications.
   - **Auto-Submit**: Capable of detecting the final "Submit" button to complete the application process autonomously.
   - **Robust UI Handling**: Advanced support for custom UI elements like "pills", "chips", and `div`-based buttons often found in modern React/Angular apps.
+  - **Resume Upload**: Automatic resume file injection into file upload fields.
+  - **AI Essay Generation**: Generates contextual responses for open-ended application questions.
 - **Extensible architecture** with placeholder hooks for AI services (configured via `easepath.ai.api-key`) and SMTP notifications via Spring Mail (configured for Resend).
+
+## Supported ATS Platforms
+
+The extension includes specialized adapters for the following Applicant Tracking Systems:
+
+| Platform | Detection | Specialized Logic |
+| -------- | --------- | ----------------- |
+| **Greenhouse** | `greenhouse.io`, `boards.greenhouse` | Education entries, custom questions |
+| **Lever** | `lever.co` | Application forms, opportunity questions |
+| **Workday** | `workday`, `myworkdayjobs` | `data-automation-id` attributes, multi-step navigation |
+| **Taleo** | `taleo` | Detected |
+| **iCIMS** | `icims` | Detected |
+| **SmartRecruiters** | `smartrecruiters` | Detected |
+| **Jobvite** | `jobvite` | Detected |
+| **Ashby** | `ashbyhq` | Detected |
+| **Breezy** | `breezy` | Detected |
+| **BambooHR** | `bamboohr` | Detected |
+| **SuccessFactors** | `successfactors` | Detected |
+| **LinkedIn** | `linkedin` | Detected |
+| **Indeed** | `indeed` | Detected |
+| **Glassdoor** | `glassdoor` | Detected |
 
 ## Tech Stack
 - **Frontend:** React 18, TypeScript, Vite, React Router, @react-oauth/google, Axios, custom AuthContext, jwt-decode.
   - **Styling & Animation:** Tailwind CSS, GSAP, Motion (Framer Motion), OGL.
 - **Backend:** Java 21, Spring Boot 3.3, Spring Web, Validation, Spring Mail, Jsoup (Scraping), Apache PDFBox (PDF Parsing), Maven build.
+- **Database:** MongoDB (via Docker).
 - **Extension:** Manifest V3, JavaScript, HTML/CSS (Popup).
+- **DevOps:** Docker, Docker Compose, Nginx (production frontend).
 
 ## Repository Layout
 ```
 E_Resume/
+├── compose.yaml                # Docker Compose orchestration
 ├── backend/                    # Spring Boot API
+│   ├── Dockerfile              # Multi-stage Maven build
 │   ├── pom.xml
 │   └── src/main/java/com/easepath/backend/
 ├── frontend/                   # React + Vite client
+│   ├── Dockerfile              # Multi-stage Node build + Nginx
+│   ├── nginx.conf              # Production reverse proxy config
 │   ├── src/components
 │   └── src/pages
 ├── extension/                  # Browser Extension (Chrome/Edge)
 │   ├── manifest.json
 │   ├── popup/
 │   └── scripts/
+│       ├── ats-adapters.js     # Platform-specific ATS logic
+│       ├── background.js       # Service worker
+│       ├── content.js          # Main autofill orchestration
+│       ├── dom-analyzer.js     # Page analysis & platform detection
+│       ├── form-filler.js      # Form field filling logic
+│       ├── ui.js               # UI utilities
+│       └── utils.js            # Helper functions
 └── README.md
 ```
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ and npm
-- Java 21 (matching `pom.xml`) and Maven 3.9+
-- **Docker Desktop**: Required for running the database automatically.
+- **Docker Desktop**: Required for both development and production deployment.
+- Node.js 18+ and npm (for local development)
+- Java 21 (matching `pom.xml`) and Maven 3.9+ (for local development)
 - **Resend API Key**: Sign up at [Resend.com](https://resend.com) (free tier) and generate an API Key.
+- **Google OAuth Client ID**: Create a project in [Google Cloud Console](https://console.cloud.google.com) and configure OAuth consent.
 
 ### 1. Clone
 ```bash
 git clone <repo-url>
 cd E_Resume
 ```
+
+---
+
+## Docker Compose Deployment (Recommended)
+
+The easiest way to run the entire stack is with Docker Compose. This will spin up MongoDB, the backend API, and the production frontend in one command.
+
+### Environment Setup
+
+Create a `.env` file in the project root:
+```env
+RESEND_API_KEY=re_your_resend_api_key
+OPENAI_API_KEY=sk-your_openai_key
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+### Start the Stack
+```bash
+docker compose up --build
+```
+
+This will:
+- **MongoDB** → Starts on port `27017` with persistent data volume
+- **Backend** → Builds with Maven, runs on port `8080`
+- **Frontend** → Builds with Vite, served via Nginx on port `80`
+
+### Access Points
+| Service | URL | Description |
+| ------- | --- | ----------- |
+| Frontend | http://localhost | Production React app via Nginx |
+| Backend API | http://localhost:8080 | Spring Boot REST API |
+| MongoDB | localhost:27017 | Database (internal) |
+
+### Stop the Stack
+```bash
+docker compose down
+```
+
+To also remove the MongoDB data volume:
+```bash
+docker compose down -v
+```
+
+---
+
+## Local Development Setup
+
+For active development, you may prefer running services individually.
 
 ### 2. Backend Setup (`/backend`)
 1. **Start Docker Desktop**: Ensure Docker is running on your machine.
