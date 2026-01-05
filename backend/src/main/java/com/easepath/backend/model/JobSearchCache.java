@@ -19,8 +19,8 @@ public class JobSearchCache {
 
     private Instant createdAt;
 
-    // Cache expires after 72 hours (259200 seconds) to conserve API credits
-    @Indexed(expireAfterSeconds = 259200)
+    // Cache expires after 24 hours (86400 seconds) for fresher job results
+    @Indexed(expireAfterSeconds = 86400)
     private Instant expireAt;
 
     public JobSearchCache() {
@@ -30,7 +30,7 @@ public class JobSearchCache {
         this.query = query;
         this.resultJson = resultJson;
         this.createdAt = Instant.now();
-        this.expireAt = Instant.now().plusSeconds(259200); // 72 hours
+        this.expireAt = Instant.now().plusSeconds(86400); // 24 hours
     }
 
     public String getId() {
