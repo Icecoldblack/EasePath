@@ -20,7 +20,7 @@ public class JobSearchCache {
     private Instant createdAt;
 
     // Cache expires after 24 hours (86400 seconds) for fresher job results
-    @Indexed(expireAfterSeconds = 86400)
+    @Indexed(expireAfterSeconds = 0)
     private Instant expireAt;
 
     public JobSearchCache() {
