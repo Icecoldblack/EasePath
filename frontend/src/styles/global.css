@@ -76,49 +76,7 @@ body.dark-theme {
   padding: 2rem;
 }
 
-/* Navbar */
 
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1.5rem;
-  background: #1C1A27;
-  color: #f9fafb;
-  border-bottom: 1px solid #333;
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-
-
-
-.navbar-logo {
-  font-weight: 700;
-  text-decoration: none;
-  color: inherit;
-  font-size: 1.5rem;
-}
-
-.navbar-nav {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nav-link {
-  text-decoration: none;
-  color: #e5e7eb;
-  font-size: 0.95rem;
-  transition: color 0.3s;
-}
-
-.nav-link:hover {
-  color: #c7a4ff;
-}
-
-.nav-link-active {
-  color: #a77dff;
-  border-bottom: 2px solid #a77dff;
-  padding-bottom: 0.1rem;
-}
 
 .google-signin-btn {
   background-color: #8a2be2;
