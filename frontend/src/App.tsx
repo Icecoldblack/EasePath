@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage/HomePage';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import AutoApplyPage from './pages/AutoApplyPage/AutoApplyPage';
@@ -16,16 +15,12 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
-  
+
   // Hide navbar on onboarding page, dashboard (has own sidebar), settings, auto-apply, jobs, resume, and homepage
-  const hideNavbarPages = ['/onboarding', '/dashboard', '/settings', '/auto-apply', '/jobs', '/resume', '/'];
-  const showNavbar = isAuthenticated && 
-                     user?.onboardingCompleted && 
-                     !hideNavbarPages.includes(location.pathname);
+  // Navbar removed as per cleanup
 
   return (
     <div className={`app-root ${theme}`} data-theme={theme}>
-      {showNavbar && <Navbar />}
       <main className="app-main" data-authenticated={isAuthenticated && location.pathname !== '/' && location.pathname !== '/index.html'}>
         <Routes>
           <Route path="/" element={<HomePage />} />
