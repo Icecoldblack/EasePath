@@ -12,43 +12,51 @@ import com.easepath.backend.model.UserProfileDocument;
  */
 public interface OpenAIService {
 
-    /**
-     * Analyze form fields and intelligently map them to user profile data.
-     * Uses GPT-3.5-turbo to understand field context and find best matches.
-     */
-    Map<String, String> analyzeAndMapFields(
-            List<FormFieldInfo> fields,
-            UserProfileDocument profile,
-            String platformName);
+        /**
+         * Analyze form fields and intelligently map them to user profile data.
+         * Uses GPT-3.5-turbo to understand field context and find best matches.
+         */
+        Map<String, String> analyzeAndMapFields(
+                        List<FormFieldInfo> fields,
+                        UserProfileDocument profile,
+                        String platformName);
 
-    /**
-     * Generate an answer for a complex question (like "Why do you want to work
-     * here?")
-     * based on user's profile and the job context.
-     */
-    String generateAnswer(
-            String question,
-            UserProfileDocument profile,
-            String jobTitle,
-            String company);
+        /**
+         * Generate an answer for a complex question (like "Why do you want to work
+         * here?")
+         * based on user's profile and the job context.
+         */
+        String generateAnswer(
+                        String question,
+                        UserProfileDocument profile,
+                        String jobTitle,
+                        String company);
 
-    /**
-     * Learn from a user's answer to improve future responses.
-     * Stores the pattern for similar questions.
-     */
-    void learnFromAnswer(
-            String question,
-            String userAnswer,
-            String userEmail);
+        /**
+         * Learn from a user's answer to improve future responses.
+         * Stores the pattern for similar questions.
+         */
+        void learnFromAnswer(
+                        String question,
+                        String userAnswer,
+                        String userEmail);
 
-    /**
-     * Check if the OpenAI API is configured and available.
-     */
-    boolean isAvailable();
+        /**
+         * Check if the OpenAI API is configured and available.
+         */
+        boolean isAvailable();
 
-    /**
-     * Score a resume using AI analysis.
-     * Returns a map with scores for: overall, profile, keywords, ats, and message.
-     */
-    java.util.Map<String, Object> scoreResume(String resumeText, String fileName);
+        /**
+         * Score a resume using AI analysis.
+         * Returns a map with scores for: overall, profile, keywords, ats, and message.
+         */
+        java.util.Map<String, Object> scoreResume(String resumeText, String fileName);
+
+        /**
+         * Parse resume text and extract structured data for onboarding autofill.
+         * Returns a map with: firstName, lastName, phone, email, linkedInUrl,
+         * githubUrl,
+         * city, state, university, major, highestDegree, workExperience, etc.
+         */
+        java.util.Map<String, Object> parseResume(String resumeText);
 }

@@ -30,14 +30,25 @@ public class OpenAIServiceImpl implements OpenAIService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
+    // Gemini configuration (primary)
+    @Value("${gemini.api-key:}")
+    private String geminiApiKey;
+
+    @Value("${gemini.model:gemini-1.5-flash}")
+    private String geminiModel;
+
+    @Value("${gemini.endpoint:https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent}")
+    private String geminiEndpoint;
+
+    // OpenAI configuration (fallback)
     @Value("${openai.api-key:}")
-    private String apiKey;
+    private String openaiApiKey;
 
     @Value("${openai.model:gpt-3.5-turbo}")
-    private String model;
+    private String openaiModel;
 
     @Value("${openai.endpoint:https://api.openai.com/v1/chat/completions}")
-    private String endpoint;
+    private String openaiEndpoint;
 
     public OpenAIServiceImpl(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.build();
@@ -46,7 +57,15 @@ public class OpenAIServiceImpl implements OpenAIService {
 
     @Override
     public boolean isAvailable() {
-        return apiKey != null && !apiKey.isEmpty() && !apiKey.equals("YOUR_API_KEY");
+        return isGeminiAvailable() || isOpenAIAvailable();
+    }
+
+    private boolean isGeminiAvailable() {
+        return geminiApiKey != null && !geminiApiKey.isEmpty();
+    }
+
+    private boolean isOpenAIAvailable() {
+        return openaiApiKey != null && !openaiApiKey.isEmpty() && !openaiApiKey.equals("YOUR_API_KEY");
     }
 
     @Override
@@ -67,7 +86,7 @@ public class OpenAIServiceImpl implements OpenAIService {
             String prompt = buildMappingPrompt(fields, profile);
 
             // Call OpenAI API
-            String response = callOpenAI(prompt);
+            String response = callAI(prompt);
 
             // Parse the response
             mapping = parseFieldMappingResponse(response, fields, profile);
@@ -119,7 +138,7 @@ public class OpenAIServiceImpl implements OpenAIService {
                     company != null ? company : "the company",
                     question);
 
-            return callOpenAI(prompt);
+            return callAI(prompt);
 
         } catch (Exception e) {
             log.error("Failed to generate answer: {}", e.getMessage());
@@ -186,26 +205,99 @@ public class OpenAIServiceImpl implements OpenAIService {
     }
 
     /**
-     * Call OpenAI chat completions API.
+     * Call AI API - prefers Gemini, falls back to OpenAI.
+     */
+    private String callAI(String prompt) {
+        if (isGeminiAvailable()) {
+            return callGemini(prompt);
+        } else if (isOpenAIAvailable()) {
+            return callOpenAI(prompt);
+        } else {
+            throw new RuntimeException("No AI API configured (neither Gemini nor OpenAI)");
+        }
+    }
+
+    /**
+     * Call Gemini API.
+     */
+    private String callGemini(String prompt) {
+        String keyPrefix = geminiApiKey.length() > 10 ? geminiApiKey.substring(0, 10) + "..." : "short";
+        log.info("Calling Gemini API - model: {}, key prefix: {}", geminiModel, keyPrefix);
+
+        // Gemini request format
+        Map<String, Object> requestBody = new HashMap<>();
+        List<Map<String, Object>> contents = new ArrayList<>();
+        Map<String, Object> content = new HashMap<>();
+        List<Map<String, String>> parts = new ArrayList<>();
+        parts.add(Map.of("text", prompt));
+        content.put("parts", parts);
+        contents.add(content);
+        requestBody.put("contents", contents);
+
+        // Generation config
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("temperature", 0.3);
+        generationConfig.put("maxOutputTokens", 8000);
+        requestBody.put("generationConfig", generationConfig);
+
+        try {
+            // Gemini uses API key as query parameter
+            String url = geminiEndpoint + "?key=" + geminiApiKey;
+
+            String responseBody = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .onStatus(status -> status.isError(), response -> {
+                        return response.bodyToMono(String.class)
+                                .flatMap(errorBody -> {
+                                    log.error("Gemini API error: status={}, body={}",
+                                            response.statusCode(), errorBody);
+                                    return reactor.core.publisher.Mono.error(
+                                            new RuntimeException(
+                                                    "Gemini API error " + response.statusCode() + ": " + errorBody));
+                                });
+                    })
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Gemini API response received");
+
+            // Parse Gemini response format
+            JsonNode root = objectMapper.readTree(responseBody);
+            String text = root.path("candidates").get(0)
+                    .path("content").path("parts").get(0).path("text").asText();
+            log.info("Extracted content length: {} chars", text != null ? text.length() : 0);
+            return text;
+
+        } catch (Exception e) {
+            log.error("Gemini API call failed: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            throw new RuntimeException("Gemini API call failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Call OpenAI chat completions API (fallback).
      */
     private String callOpenAI(String prompt) {
-        // Log API key prefix for debugging (first 10 chars only for security)
-        String keyPrefix = apiKey != null && apiKey.length() > 10 ? apiKey.substring(0, 10) + "..." : "null/short";
-        log.info("Calling OpenAI API - endpoint: {}, model: {}, key prefix: {}", endpoint, model, keyPrefix);
+        String keyPrefix = openaiApiKey.length() > 10 ? openaiApiKey.substring(0, 10) + "..." : "short";
+        log.info("Calling OpenAI API - endpoint: {}, model: {}, key prefix: {}", openaiEndpoint, openaiModel,
+                keyPrefix);
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", model);
+        requestBody.put("model", openaiModel);
 
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));
         requestBody.put("messages", messages);
-        requestBody.put("temperature", 0.3); // Lower temperature for more consistent responses
+        requestBody.put("temperature", 0.3);
         requestBody.put("max_tokens", 1000);
 
         try {
             String responseBody = webClient.post()
-                    .uri(endpoint)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .uri(openaiEndpoint)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + openaiApiKey)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .bodyValue(requestBody)
                     .retrieve()
@@ -222,9 +314,8 @@ public class OpenAIServiceImpl implements OpenAIService {
                     .bodyToMono(String.class)
                     .block();
 
-            log.info("OpenAI API response received successfully");
+            log.info("OpenAI API response received");
 
-            // Parse the response to extract the content
             JsonNode root = objectMapper.readTree(responseBody);
             String content = root.path("choices").get(0).path("message").path("content").asText();
             log.info("Extracted content length: {} chars", content != null ? content.length() : 0);
@@ -389,12 +480,11 @@ public class OpenAIServiceImpl implements OpenAIService {
     public Map<String, Object> scoreResume(String resumeText, String fileName) {
         Map<String, Object> result = new HashMap<>();
 
-        log.info("scoreResume called - API Key available: {}, API Key length: {}",
-                isAvailable(),
-                apiKey != null ? apiKey.length() : 0);
+        log.info("scoreResume called - Gemini available: {}, OpenAI available: {}",
+                isGeminiAvailable(), isOpenAIAvailable());
 
         if (!isAvailable()) {
-            log.warn("OpenAI API not available - returning fallback resume score");
+            log.warn("No AI API configured - returning fallback resume score");
             // Return a fallback score based on basic analysis
             int textLength = resumeText != null ? resumeText.length() : 0;
             int profileScore = Math.min(85, 50 + (textLength / 100));
@@ -406,7 +496,7 @@ public class OpenAIServiceImpl implements OpenAIService {
             result.put("profile", profileScore);
             result.put("keywords", keywordsScore);
             result.put("ats", atsScore);
-            result.put("message", "OpenAI API key not configured. Basic analysis applied.");
+            result.put("message", "AI API not configured. Basic analysis applied.");
             return result;
         }
 
@@ -434,7 +524,7 @@ public class OpenAIServiceImpl implements OpenAIService {
                             ? resumeText.substring(0, 3000) + "..."
                             : (resumeText != null ? resumeText : "No content"));
 
-            String response = callOpenAI(prompt);
+            String response = callAI(prompt);
             log.info("Raw OpenAI response for resume score: '{}'", response);
 
             if (response == null || response.isEmpty()) {
@@ -506,5 +596,148 @@ public class OpenAIServiceImpl implements OpenAIService {
         }
 
         return result;
+    }
+
+    @Override
+    public Map<String, Object> parseResume(String resumeText) {
+        Map<String, Object> result = new HashMap<>();
+
+        log.info("parseResume called - Gemini available: {}, OpenAI available: {}", isGeminiAvailable(),
+                isOpenAIAvailable());
+
+        if (!isAvailable()) {
+            log.warn("No AI API configured - cannot parse resume");
+            result.put("error", "AI parsing is not configured");
+            return result;
+        }
+
+        if (resumeText == null || resumeText.trim().isEmpty()) {
+            result.put("error", "Resume text is empty");
+            return result;
+        }
+
+        try {
+            String prompt = String.format("""
+                    You are a resume parser. Extract structured data from this resume text.
+
+                    Resume content:
+                    %s
+
+                    Extract and return ONLY valid JSON with these fields (use null for missing data):
+                    {
+                        "firstName": "string",
+                        "lastName": "string",
+                        "phone": "string (format: xxx-xxx-xxxx)",
+                        "email": "string",
+                        "linkedInUrl": "string or null",
+                        "githubUrl": "string or null",
+                        "portfolioUrl": "string or null",
+                        "city": "string or null",
+                        "state": "string (2-letter code if US) or null",
+                        "country": "string or null",
+                        "highestDegree": "string (Bachelor's, Master's, PhD, etc.) or null",
+                        "university": "string or null",
+                        "major": "string or null",
+                        "educationStartDate": "string (MM/YYYY format) or null",
+                        "educationEndDate": "string (MM/YYYY format) or null",
+                        "desiredJobTitle": "string (infer from most recent job title) or null",
+                        "yearsOfExperience": "string (e.g., '3-5') or null",
+                        "workExperience": [
+                            {
+                                "company": "string",
+                                "jobTitle": "string",
+                                "startDate": "YYYY-MM",
+                                "endDate": "YYYY-MM or null if current",
+                                "isCurrent": boolean,
+                                "location": "string or null",
+                                "description": "string (brief summary)"
+                            }
+                        ]
+                    }
+
+                    Important:
+                    - Extract ONLY what is clearly stated in the resume
+                    - For workExperience, include up to 5 most recent positions
+                    - Phone should be formatted as xxx-xxx-xxxx
+                    - Return ONLY the JSON, no markdown or extra text
+                    """,
+                    resumeText.length() > 6000 ? resumeText.substring(0, 6000) + "..." : resumeText);
+
+            String response = callAI(prompt);
+            log.info("Raw OpenAI response for resume parse: '{}'",
+                    response != null && response.length() > 200 ? response.substring(0, 200) + "..." : response);
+
+            if (response == null || response.isEmpty()) {
+                throw new RuntimeException("Empty response from OpenAI");
+            }
+
+            // Clean and parse JSON response
+            String jsonStr = response.trim();
+            if (jsonStr.startsWith("```")) {
+                jsonStr = jsonStr.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+            }
+            int jsonStart = jsonStr.indexOf('{');
+            int jsonEnd = jsonStr.lastIndexOf('}');
+            if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+            }
+
+            JsonNode parsed = objectMapper.readTree(jsonStr);
+
+            // Extract all fields
+            result.put("firstName", getTextOrNull(parsed, "firstName"));
+            result.put("lastName", getTextOrNull(parsed, "lastName"));
+            result.put("phone", getTextOrNull(parsed, "phone"));
+            result.put("email", getTextOrNull(parsed, "email"));
+            result.put("linkedInUrl", getTextOrNull(parsed, "linkedInUrl"));
+            result.put("githubUrl", getTextOrNull(parsed, "githubUrl"));
+            result.put("portfolioUrl", getTextOrNull(parsed, "portfolioUrl"));
+            result.put("city", getTextOrNull(parsed, "city"));
+            result.put("state", getTextOrNull(parsed, "state"));
+            result.put("country", getTextOrNull(parsed, "country"));
+            result.put("highestDegree", getTextOrNull(parsed, "highestDegree"));
+            result.put("university", getTextOrNull(parsed, "university"));
+            result.put("major", getTextOrNull(parsed, "major"));
+            result.put("educationStartDate", getTextOrNull(parsed, "educationStartDate"));
+            result.put("educationEndDate", getTextOrNull(parsed, "educationEndDate"));
+            result.put("desiredJobTitle", getTextOrNull(parsed, "desiredJobTitle"));
+            result.put("yearsOfExperience", getTextOrNull(parsed, "yearsOfExperience"));
+
+            // Parse work experience array
+            JsonNode workExpNode = parsed.path("workExperience");
+            if (workExpNode.isArray()) {
+                List<Map<String, Object>> workExperience = new ArrayList<>();
+                for (JsonNode jobNode : workExpNode) {
+                    Map<String, Object> job = new HashMap<>();
+                    job.put("company", getTextOrNull(jobNode, "company"));
+                    job.put("jobTitle", getTextOrNull(jobNode, "jobTitle"));
+                    job.put("startDate", getTextOrNull(jobNode, "startDate"));
+                    job.put("endDate", getTextOrNull(jobNode, "endDate"));
+                    job.put("isCurrent", jobNode.path("isCurrent").asBoolean(false));
+                    job.put("location", getTextOrNull(jobNode, "location"));
+                    job.put("description", getTextOrNull(jobNode, "description"));
+                    workExperience.add(job);
+                }
+                result.put("workExperience", workExperience);
+            }
+
+            log.info("Successfully parsed resume - found {} work experience entries",
+                    result.containsKey("workExperience") ? ((List<?>) result.get("workExperience")).size() : 0);
+
+        } catch (Exception e) {
+            log.error("Failed to parse resume: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            result.put("error", "Failed to parse resume: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    private String getTextOrNull(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (value.isNull() || value.isMissingNode()) {
+            return null;
+        }
+        String text = value.asText();
+        return (text == null || text.equals("null") || text.isEmpty()) ? null : text;
     }
 }

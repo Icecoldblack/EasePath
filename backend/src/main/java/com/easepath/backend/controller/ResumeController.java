@@ -66,6 +66,110 @@ public class ResumeController {
     }
 
     /**
+     * Parse a resume file and extract structured data for onboarding autofill.
+     * Uses AI to intelligently extract name, contact info, education, and work
+     * history.
+     */
+    @PostMapping("/parse")
+    public ResponseEntity<Map<String, Object>> parseResume(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+
+        User currentUser = (User) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        log.info("Parsing resume for onboarding autofill: {}", file.getOriginalFilename());
+
+        // Validate file
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.equals("application/pdf")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Only PDF files are supported for parsing"));
+        }
+
+        // Max 5MB
+        if (file.getSize() > 5 * 1024 * 1024) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File size exceeds 5MB limit"));
+        }
+
+        try {
+            // Extract text from PDF using PDFBox
+            byte[] pdfBytes = file.getBytes();
+            String resumeText = extractTextFromPdf(pdfBytes);
+
+            if (resumeText == null || resumeText.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Could not extract text from PDF"));
+            }
+
+            log.info("Extracted {} characters from PDF", resumeText.length());
+
+            // Use AI to parse the resume text
+            Map<String, Object> parsedData = openAIService.parseResume(resumeText);
+
+            if (parsedData.containsKey("error")) {
+                return ResponseEntity.status(500).body(parsedData);
+            }
+
+            // Also save the resume to database for extension use
+            String userEmail = currentUser.getEmail();
+
+            // Delete existing resumes for this user
+            List<ResumeDocument> existingResumes = resumeRepository.findAllByUserEmail(userEmail);
+            if (!existingResumes.isEmpty()) {
+                log.info("Deleting {} existing resume(s) for user during autofill: {}", existingResumes.size(),
+                        userEmail);
+                resumeRepository.deleteAll(existingResumes);
+            }
+
+            // Store the new resume
+            ResumeDocument resumeDoc = new ResumeDocument();
+            resumeDoc.setUserEmail(userEmail);
+            resumeDoc.setFileName(file.getOriginalFilename());
+            resumeDoc.setContentType(file.getContentType());
+            resumeDoc.setFileData(Base64.getEncoder().encodeToString(pdfBytes));
+            resumeDoc.setFileSize(file.getSize());
+            resumeDoc.setCreatedAt(Instant.now());
+            resumeRepository.save(resumeDoc);
+
+            // Update user profile with resume filename
+            userProfileRepository.findByEmail(userEmail).ifPresent(profile -> {
+                profile.setResumeFileName(file.getOriginalFilename());
+                profile.setUpdatedAt(Instant.now());
+                userProfileRepository.save(profile);
+            });
+
+            log.info("Resume saved for extension use: {} for user: {}", file.getOriginalFilename(), userEmail);
+
+            parsedData.put("success", true);
+            parsedData.put("resumeSaved", true);
+            parsedData.put("fileName", file.getOriginalFilename());
+            return ResponseEntity.ok(parsedData);
+
+        } catch (Exception e) {
+            log.error("Failed to parse resume: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to parse resume: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Extract text from PDF bytes using PDFBox.
+     */
+    private String extractTextFromPdf(byte[] pdfBytes) {
+        try (org.apache.pdfbox.pdmodel.PDDocument document = org.apache.pdfbox.pdmodel.PDDocument.load(pdfBytes)) {
+            org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
+            return stripper.getText(document);
+        } catch (Exception e) {
+            log.error("PDFBox extraction failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Upload a resume file (PDF, DOC, DOCX).
      * Stores the file content in MongoDB and updates user profile.
      */

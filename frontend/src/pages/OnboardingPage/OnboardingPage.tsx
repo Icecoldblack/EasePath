@@ -41,7 +41,8 @@ interface OnboardingData {
   highestDegree: string;
   university: string;
   major: string;
-  graduationYear: string;
+  educationStartDate: string;
+  educationEndDate: string;
 
   // EEO (Optional)
   veteranStatus: string;
@@ -73,6 +74,8 @@ const OnboardingPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isParsingResume, setIsParsingResume] = useState(false);
+  const [resumeParseSuccess, setResumeParseSuccess] = useState(false);
 
   // Check if we're in edit mode (coming from settings)
   useEffect(() => {
@@ -111,7 +114,8 @@ const OnboardingPage: React.FC = () => {
     highestDegree: '',
     university: '',
     major: '',
-    graduationYear: '',
+    educationStartDate: '',
+    educationEndDate: '',
 
     veteranStatus: 'Prefer not to say',
     disabilityStatus: 'Prefer not to say',
@@ -201,7 +205,8 @@ const OnboardingPage: React.FC = () => {
             highestDegree: profile.highestDegree || prev.highestDegree,
             university: profile.university || prev.university,
             major: profile.major || prev.major,
-            graduationYear: profile.graduationYear || prev.graduationYear,
+            educationStartDate: profile.educationStartDate || prev.educationStartDate,
+            educationEndDate: profile.educationEndDate || prev.educationEndDate,
 
             veteranStatus: profile.veteranStatus || prev.veteranStatus,
             disabilityStatus: profile.disabilityStatus || prev.disabilityStatus,
@@ -365,6 +370,77 @@ const OnboardingPage: React.FC = () => {
     }
   };
 
+  // Resume parsing for autofill
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      setError('Please upload a PDF file');
+      return;
+    }
+
+    setIsParsingResume(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/resume/parse`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formDataUpload,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to parse resume');
+      }
+
+      const parsed = await response.json();
+
+      // Auto-fill form fields with parsed data
+      setFormData(prev => ({
+        ...prev,
+        firstName: parsed.firstName || prev.firstName,
+        lastName: parsed.lastName || prev.lastName,
+        phone: parsed.phone || prev.phone,
+        linkedInUrl: parsed.linkedInUrl || prev.linkedInUrl,
+        githubUrl: parsed.githubUrl || prev.githubUrl,
+        portfolioUrl: parsed.portfolioUrl || prev.portfolioUrl,
+        city: parsed.city || prev.city,
+        state: parsed.state || prev.state,
+        country: parsed.country || prev.country,
+        highestDegree: parsed.highestDegree || prev.highestDegree,
+        university: parsed.university || prev.university,
+        major: parsed.major || prev.major,
+        educationStartDate: parsed.educationStartDate || prev.educationStartDate,
+        educationEndDate: parsed.educationEndDate || prev.educationEndDate,
+        desiredJobTitle: parsed.desiredJobTitle || prev.desiredJobTitle,
+        yearsOfExperience: parsed.yearsOfExperience || prev.yearsOfExperience,
+        workExperience: parsed.workExperience?.length > 0
+          ? parsed.workExperience.map((job: { company?: string; jobTitle?: string; startDate?: string; endDate?: string; isCurrent?: boolean; location?: string; description?: string }) => ({
+            company: job.company || '',
+            jobTitle: job.jobTitle || '',
+            startDate: job.startDate || '',
+            endDate: job.endDate || '',
+            isCurrent: job.isCurrent || false,
+            location: job.location || '',
+            description: job.description || '',
+          }))
+          : prev.workExperience,
+      }));
+
+      setResumeParseSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to parse resume');
+    } finally {
+      setIsParsingResume(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -403,6 +479,66 @@ const OnboardingPage: React.FC = () => {
           <div className="onboarding-step">
             <h2> Let's get to know you</h2>
             <p className="step-description">This info will be used to auto-fill job applications.</p>
+
+            {/* Resume Quick Fill Section */}
+            {!resumeParseSuccess && (
+              <div className="resume-autofill-section" style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))',
+                border: '2px dashed rgba(99, 102, 241, 0.4)',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '24px',
+                textAlign: 'center'
+              }}>
+                <h3 style={{ margin: '0 0 8px 0', color: 'var(--primary)' }}>⚡ Quick Fill from Resume</h3>
+                <p style={{ margin: '0 0 16px 0', opacity: 0.8, fontSize: '14px' }}>
+                  Upload your resume to auto-fill most fields instantly
+                </p>
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  cursor: isParsingResume ? 'wait' : 'pointer',
+                  opacity: isParsingResume ? 0.7 : 1,
+                }}>
+                  {isParsingResume ? (
+                    <>Parsing Resume...</>
+                  ) : (
+                    <>📄 Upload PDF Resume</>
+                  )}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleResumeUpload}
+                    disabled={isParsingResume}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <p style={{ margin: '12px 0 0 0', fontSize: '12px', opacity: 0.6 }}>
+                  Or fill in the fields manually below
+                </p>
+              </div>
+            )}
+
+            {resumeParseSuccess && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '20px' }}>✅</span>
+                <span>Resume parsed! Fields have been auto-filled. Review and edit as needed.</span>
+              </div>
+            )}
 
             <div className="form-row">
               <div className="form-group">
@@ -855,14 +991,27 @@ const OnboardingPage: React.FC = () => {
                   placeholder="Stanford University"
                 />
               </div>
+            </div>
+
+            <div className="form-row">
               <div className="form-group">
-                <label>Graduation Year</label>
+                <label>College Start Date (MM/YYYY)</label>
                 <input
                   type="text"
-                  name="graduationYear"
-                  value={formData.graduationYear}
+                  name="educationStartDate"
+                  value={formData.educationStartDate}
                   onChange={handleChange}
-                  placeholder="2023"
+                  placeholder="08/2023"
+                />
+              </div>
+              <div className="form-group">
+                <label>College End Date (MM/YYYY)</label>
+                <input
+                  type="text"
+                  name="educationEndDate"
+                  value={formData.educationEndDate}
+                  onChange={handleChange}
+                  placeholder="05/2027"
                 />
               </div>
             </div>
