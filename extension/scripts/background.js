@@ -28,11 +28,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "fetch_ai_mapping") {
         console.log("Background: Processing autofill request for", request.url);
 
-        if (!userEmail) {
-            console.error("Background: No user email set - user must connect account first");
+        if (!userEmail || !authToken) {
+            console.error("Background: No auth token - user must connect account first");
             sendResponse({
                 mapping: {},
-                error: "Please connect your EasePath account first",
+                error: "Please open the extension and sync with your EasePath account",
                 needsLogin: true
             });
             return true;
@@ -75,11 +75,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             })
             .catch(err => {
                 console.error("Background: API error:", err.message);
-                sendResponse({
-                    mapping: {},
-                    error: "Could not connect to EasePath server. Is it running?",
-                    serverError: true
-                });
+                // Handle 401 by clearing token
+                if (err.message.includes('401')) {
+                    authToken = null;
+                    chrome.storage.local.remove(['authToken']);
+                    sendResponse({
+                        mapping: {},
+                        error: "Session expired. Please sync with EasePath again.",
+                        needsLogin: true
+                    });
+                } else {
+                    sendResponse({
+                        mapping: {},
+                        error: "Could not connect to EasePath server. Is it running?",
+                        serverError: true
+                    });
+                }
             });
 
         return true; // Keep channel open for async response
@@ -160,7 +171,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return true;
         }
 
-        const resumeUrl = `${API_BASE_URL}/resume-file?email=${encodeURIComponent(userEmail)}`;
+        // SECURITY: Auth via Bearer token only, no email param
+        const resumeUrl = `${API_BASE_URL}/resume-file`;
         console.log("Background: Fetching resume from:", resumeUrl);
 
         fetch(resumeUrl, {

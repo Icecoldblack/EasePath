@@ -74,19 +74,13 @@ public class ExtensionController {
     }
 
     /**
-     * Get user email from JWT auth OR from email query param.
-     * This allows the extension to work with either authentication method.
+     * SECURITY: Get user email from JWT auth ONLY.
+     * Email query parameter fallback has been removed for security.
      */
-    private String getUserEmail(HttpServletRequest request, String emailParam) {
-        // First try JWT auth
+    private String getUserEmail(HttpServletRequest request) {
         User currentUser = getCurrentUser(request);
         if (currentUser != null) {
             return currentUser.getEmail();
-        }
-        // Fall back to email parameter (for extension manual connect)
-        if (emailParam != null && !emailParam.isEmpty()) {
-            log.info("Using email param for extension auth: {}", emailParam);
-            return emailParam;
         }
         return null;
     }
@@ -100,8 +94,8 @@ public class ExtensionController {
     public ResponseEntity<AutofillResponse> autofill(@RequestBody AutofillRequest request,
             HttpServletRequest httpRequest) {
 
-        // Use JWT auth or fall back to userEmail in request body
-        String userEmail = getUserEmail(httpRequest, request.getUserEmail());
+        // SECURITY: JWT auth required
+        String userEmail = getUserEmail(httpRequest);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
@@ -186,11 +180,10 @@ public class ExtensionController {
      * Accepts either JWT auth OR email query param.
      */
     @GetMapping("/resume-file")
-    public ResponseEntity<Map<String, Object>> getResumeFile(
-            @RequestParam(value = "email", required = false) String email,
-            HttpServletRequest httpRequest) {
+    public ResponseEntity<Map<String, Object>> getResumeFile(HttpServletRequest httpRequest) {
 
-        String userEmail = getUserEmail(httpRequest, email);
+        // SECURITY: JWT auth required
+        String userEmail = getUserEmail(httpRequest);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
@@ -230,11 +223,10 @@ public class ExtensionController {
      * Accepts either JWT auth OR email query param for manual connect.
      */
     @GetMapping("/profile")
-    public ResponseEntity<UserProfileDto> getProfile(
-            @RequestParam(value = "email", required = false) String email,
-            HttpServletRequest httpRequest) {
+    public ResponseEntity<UserProfileDto> getProfile(HttpServletRequest httpRequest) {
 
-        String userEmail = getUserEmail(httpRequest, email);
+        // SECURITY: JWT auth required
+        String userEmail = getUserEmail(httpRequest);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
@@ -250,8 +242,8 @@ public class ExtensionController {
      */
     @PutMapping("/profile")
     public ResponseEntity<UserProfileDto> saveProfile(@RequestBody UserProfileDto dto, HttpServletRequest httpRequest) {
-        // Support both JWT auth and email from request body
-        String userEmail = getUserEmail(httpRequest, dto.getEmail());
+        // SECURITY: JWT auth required
+        String userEmail = getUserEmail(httpRequest);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
@@ -534,7 +526,8 @@ public class ExtensionController {
             @RequestBody RecordApplicationRequest request,
             HttpServletRequest httpRequest) {
 
-        String userEmail = getUserEmail(httpRequest, request.getUserEmail());
+        // SECURITY: JWT auth required
+        String userEmail = getUserEmail(httpRequest);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
@@ -624,7 +617,8 @@ public class ExtensionController {
             @RequestBody GenerateEssayRequest request,
             HttpServletRequest httpRequest) {
 
-        String userEmail = getUserEmail(httpRequest, request.getUserEmail());
+        // SECURITY: JWT auth required
+        String userEmail = getUserEmail(httpRequest);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }

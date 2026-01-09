@@ -83,14 +83,12 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * Check if the path is public (no authentication required)
-     * Extension endpoints use email-based fallback auth in the controller
+     * SECURITY: Extension endpoints NOW REQUIRE authentication via Bearer token.
      */
     private boolean isPublicPath(String path) {
         return path.contains("/health")
                 || path.contains("/sample")
-                || path.contains("/api/auth/")
-                // Extension endpoints support email-based fallback auth in the controller
-                || path.startsWith("/api/extension/");
+                || path.contains("/api/auth/");
     }
 
     /**

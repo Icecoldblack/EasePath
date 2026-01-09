@@ -66,32 +66,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         syncBtn.classList.add('loading');
         syncBtn.textContent = 'Syncing...';
 
-        // First check if we have a stored email
-        const { userEmail } = await chrome.storage.local.get(['userEmail']);
-        if (userEmail) {
-            await fetchAndStoreProfile(userEmail);
-        } else {
-            // Try to auto-connect from page
-            await tryAutoConnect();
+        // First check if we have a stored token
+        const storage = await chrome.storage.local.get(['userEmail', 'authToken']);
 
-            // If still not connected, check all EasePath tabs
-            const { userEmail: emailAfterTry } = await chrome.storage.local.get(['userEmail']);
-            if (!emailAfterTry) {
-                // Try to find an open EasePath tab and get user from there
-                const tabs = await chrome.tabs.query({});
-                for (const tab of tabs) {
-                    if (tab.url && (tab.url.includes('localhost:5173') || tab.url.includes('localhost:5174'))) {
-                        try {
-                            const response = await chrome.tabs.sendMessage(tab.id, { action: "get_user_from_page" });
-                            if (response && response.email) {
-                                await fetchAndStoreProfile(response.email, response.authToken);
-                                break;
-                            }
-                        } catch (e) {
-                            console.log('Could not get user from tab:', e);
+        if (storage.authToken) {
+            // We have a token, try to fetch profile
+            await fetchAndStoreProfile(storage.userEmail, storage.authToken);
+        } else {
+            // No token stored, try to get from EasePath tab
+            let foundToken = false;
+
+            // Search all tabs for an EasePath page
+            const tabs = await chrome.tabs.query({});
+            for (const tab of tabs) {
+                if (tab.url && (tab.url.includes('localhost:5173') || tab.url.includes('localhost:5174') || tab.url.includes('easepath.app'))) {
+                    try {
+                        const response = await chrome.tabs.sendMessage(tab.id, { action: "get_user_from_page" });
+                        if (response && response.email && response.authToken) {
+                            await fetchAndStoreProfile(response.email, response.authToken);
+                            foundToken = true;
+                            break;
                         }
+                    } catch (e) {
+                        console.log('Could not get user from tab:', e);
                     }
                 }
+            }
+
+            if (!foundToken) {
+                // No EasePath tab found or no token - prompt user
+                showNotConnectedState();
+                showMessage('Please log in to EasePath first. Opening dashboard...', 'warning');
+                // Open dashboard in new tab
+                chrome.tabs.create({ url: FRONTEND_URL });
             }
         }
 
@@ -324,29 +331,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 authToken = storage.authToken;
             }
 
-            const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
-            // Include email as query param for fallback auth when no token
-            const response = await fetch(`${API_BASE_URL}/profile?email=${encodeURIComponent(email)}`, { headers });
+            // SECURITY: Token required for API access
+            if (!authToken) {
+                showNotConnectedState();
+                showMessage('No auth token found. Please log in to EasePath dashboard first.', 'warning');
+                return;
+            }
+
+            const headers = { 'Authorization': `Bearer ${authToken}` };
+            const response = await fetch(`${API_BASE_URL}/profile`, { headers });
 
             if (response.ok) {
                 userProfile = await response.json();
 
                 // Store for future use (including auth token)
                 chrome.storage.local.set({
-                    userEmail: email,
+                    userEmail: email || userProfile.email,
                     userProfile: userProfile,
                     authToken: authToken
                 });
 
                 // Notify background script with auth token
-                chrome.runtime.sendMessage({ action: "set_user_email", email: email, authToken: authToken });
+                chrome.runtime.sendMessage({ action: "set_user_email", email: email || userProfile.email, authToken: authToken });
 
                 showConnectedState();
+                showMessage('✅ Connected successfully!', 'success');
 
                 // Fetch learning stats
                 fetchLearningStats(email, authToken);
 
             } else if (response.status === 401) {
+                // Clear invalid token
+                chrome.storage.local.remove(['authToken']);
                 showNotConnectedState();
                 showMessage('Session expired. Please log in to EasePath and sync again.', 'warning');
             } else {
@@ -423,52 +439,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function addManualConnectOption() {
+        // SECURITY: Manual email-only connect has been removed.
+        // Users must log in via the dashboard to get a valid auth token.
         // Check if already added
         if (document.getElementById('manual-connect')) return;
 
         const manualDiv = document.createElement('div');
         manualDiv.id = 'manual-connect';
         manualDiv.innerHTML = `
-            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Or enter your email:</p>
-            <div style="display: flex; gap: 8px;">
-                <input type="email" id="manual-email" placeholder="your@email.com" style="flex: 1;">
-                <button id="manual-connect-btn" class="primary-btn" style="padding: 10px 16px; white-space: nowrap;">
-                    Connect
-                </button>
-            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                <strong>To connect:</strong> Log in to <a href="${FRONTEND_URL}" target="_blank" style="color: var(--primary);">EasePath</a>, then click "Sync".
+            </p>
         `;
 
         notConnected.appendChild(manualDiv);
-
-        const connectBtn = document.getElementById('manual-connect-btn');
-        const emailInput = document.getElementById('manual-email');
-
-        connectBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            if (email && email.includes('@')) {
-                connectBtn.disabled = true;
-                connectBtn.textContent = 'Connecting...';
-                await fetchAndStoreProfile(email);
-                connectBtn.disabled = false;
-                connectBtn.textContent = 'Connect';
-            } else {
-                showMessage('Please enter a valid email address.', 'warning');
-            }
-        });
-
-        // Allow enter key to submit
-        emailInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                const email = e.target.value.trim();
-                if (email && email.includes('@')) {
-                    connectBtn.disabled = true;
-                    connectBtn.textContent = 'Connecting...';
-                    await fetchAndStoreProfile(email);
-                    connectBtn.disabled = false;
-                    connectBtn.textContent = 'Connect';
-                }
-            }
-        });
     }
 
     function updateProfileUI() {
