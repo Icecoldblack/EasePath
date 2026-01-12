@@ -364,12 +364,32 @@ public class ResumeController {
 
                     // No cached score, proceed with AI scoring
                     String resumeText = "";
-                    if (resume.getFileData() != null) {
+
+                    // First check if we have cached parsedText
+                    if (resume.getParsedText() != null && !resume.getParsedText().isEmpty()) {
+                        resumeText = resume.getParsedText();
+                        log.info("Using cached parsed text for scoring: {} chars", resumeText.length());
+                    } else if (resume.getFileData() != null) {
+                        // Extract text from PDF using PDFBox (same as /parse endpoint)
                         try {
                             byte[] decoded = Base64.getDecoder().decode(resume.getFileData());
-                            resumeText = new String(decoded);
+                            String contentType = resume.getContentType();
+
+                            if (contentType != null && contentType.equals("application/pdf")) {
+                                // Use PDFBox to extract text from PDF
+                                resumeText = extractTextFromPdf(decoded);
+                                if (resumeText != null && !resumeText.isEmpty()) {
+                                    // Cache the extracted text for future use
+                                    resume.setParsedText(resumeText);
+                                    resumeRepository.save(resume);
+                                    log.info("Extracted and cached {} chars from PDF for scoring", resumeText.length());
+                                }
+                            } else {
+                                // For non-PDF files, try as plain text
+                                resumeText = new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+                            }
                         } catch (Exception e) {
-                            log.warn("Could not decode resume content: {}", e.getMessage());
+                            log.warn("Could not extract resume content: {}", e.getMessage());
                         }
                     }
 

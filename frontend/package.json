@@ -14,6 +14,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.7.0",
     "gsap": "^3.13.0",
+    "jspdf": "^4.0.0",
     "jwt-decode": "^4.0.0",
     "motion": "^12.23.26",
     "ogl": "^1.0.11",
