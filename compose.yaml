@@ -16,7 +16,7 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/easepath
       # Pass through secrets/keys as needed
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       - mongodb
