@@ -10,7 +10,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(UserDto user) {
-        // TODO: replace with real persistence later
         user.setId(1L);
         return user;
     }
