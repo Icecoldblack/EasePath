@@ -6,7 +6,7 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
 - **Dashboard** - Track your job applications, interviews, and success rate
 - **Browser Extension** - Auto-fills job application forms on sites like Workday, Greenhouse, Lever
 - **Resume Parsing** - Upload your resume to populate your profile automatically
-- **AI Scoring** - Get matched with jobs that fit your skills
+- **AI Scoring** - Gives users a score based on our ATS system that can help with our job search
 
 ## Quick Start
 
