@@ -1,0 +1,238 @@
+/* Search and Filter Styles */
+
+/* Jobs Header */
+.jobs-header {
+    padding: 24px 32px;
+    background: rgba(13, 17, 23, 0.8);
+    border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e6edf3;
+    margin: 0;
+}
+
+.header-subtitle {
+    font-size: 14px;
+    color: #58a6ff;
+    margin: 4px 0 0 0;
+}
+
+/* Search Form */
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.search-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.search-input-group {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    color: #8b949e;
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    background: rgba(22, 27, 35, 0.8);
+    border: 1px solid rgba(48, 54, 61, 0.8);
+    border-radius: 10px;
+    color: #e6edf3;
+    font-size: 15px;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    background: rgba(22, 27, 35, 1);
+}
+
+.search-input::placeholder {
+    color: #8b949e;
+}
+
+.search-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    background: #58a6ff;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-button:hover {
+    background: #4d9bef;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
+}
+
+/* Filter Dropdowns with Animation */
+.filter-dropdown {
+    padding: 12px 36px 12px 16px;
+    background: linear-gradient(135deg, #58a6ff 0%, #4d9bf0 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    min-width: 140px;
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+    transform-origin: center;
+}
+
+.filter-dropdown:hover {
+    background: linear-gradient(135deg, #4d9bf0 0%, #3b8de0 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.4);
+}
+
+.filter-dropdown:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
+    animation: dropdownPulse 0.3s ease;
+}
+
+@keyframes dropdownPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.filter-dropdown option {
+    background: #161b22;
+    color: #e6edf3;
+    padding: 12px;
+}
+
+/* Filter Chips Bar */
+.filter-chips-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(48, 54, 61, 0.4);
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(56, 139, 253, 0.1);
+    border: 1px solid rgba(88, 166, 255, 0.4);
+    border-radius: 100px;
+    color: #58a6ff;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+    background: rgba(56, 139, 253, 0.2);
+    border-color: #58a6ff;
+}
+
+.filter-chip svg {
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: #58a6ff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 4px;
+}
+
+.chip-remove:hover {
+    background: rgba(248, 81, 73, 0.2);
+    color: #f85149;
+}
+
+.clear-all-btn {
+    background: transparent;
+    border: 1px solid rgba(248, 81, 73, 0.4);
+    color: #f85149;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-all-btn:hover {
+    background: rgba(248, 81, 73, 0.1);
+    border-color: #f85149;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .jobs-header {
+        padding: 16px;
+    }
+
+    .search-bar {
+        flex-direction: column;
+    }
+
+    .search-button {
+        width: 100%;
+        justify-content: center;
+    }
+}

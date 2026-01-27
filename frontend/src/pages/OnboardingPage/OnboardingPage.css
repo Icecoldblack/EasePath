@@ -175,6 +175,13 @@
   font-size: 14px;
 }
 
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 32px;
+}
+
 .button-row {
   display: flex;
   justify-content: space-between;

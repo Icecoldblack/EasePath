@@ -2,68 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../config';
+import {
+  BasicInfoStep,
+  LocationStep,
+  WorkAuthorizationStep,
+  WorkExperienceStep,
+  JobPreferencesStep,
+  EEOInfoStep,
+  OnboardingData,
+  WorkExperience,
+} from './steps';
 import './OnboardingPage.css';
-
-interface OnboardingData {
-  // Basic Info
-  firstName: string;
-  lastName: string;
-  phone: string;
-
-  // Professional Links
-  linkedInUrl: string;
-  githubUrl: string;
-  portfolioUrl: string;
-
-  // Location
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-
-  // Work Authorization
-  isUsCitizen: boolean;
-  workAuthorization: string;
-  requiresSponsorship: boolean;
-  hasWorkVisa: boolean;
-  visaType: string;
-
-  // Job Preferences
-  desiredJobTitle: string;
-  desiredSalary: string;
-  yearsOfExperience: string;
-  willingToRelocate: boolean;
-  preferredLocations: string;
-  availableStartDate: string;
-
-  // Education
-  highestDegree: string;
-  university: string;
-  major: string;
-  educationStartDate: string;
-  educationEndDate: string;
-
-  // EEO (Optional)
-  veteranStatus: string;
-  disabilityStatus: string;
-  gender: string;
-  ethnicity: string;
-  lgbtqIdentity: string;
-
-  // Work Experience
-  workExperience: WorkExperience[];
-}
-
-export interface WorkExperience {
-  company: string;
-  jobTitle: string;
-  startDate: string;
-  endDate: string;
-  isCurrent: boolean;
-  description: string;
-  location: string;
-}
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -149,71 +98,58 @@ const OnboardingPage: React.FC = () => {
 
       // Check edit mode directly from URL to avoid race condition
       const urlParams = new URLSearchParams(window.location.search);
-      const isEditModeFromUrl = urlParams.get('edit') === 'true';
-      if (isEditModeFromUrl) setIsEditMode(true);
+      const isEditing = urlParams.get('edit') === 'true';
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(user.email)}`
-        );
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/api/extension/profile?email=${user.email}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
 
         if (response.ok) {
           const profile = await response.json();
 
-          // If onboarding already completed and NOT in edit mode, redirect to dashboard
-          if (profile.onboardingCompleted && !isEditModeFromUrl) {
-            updateUser({ onboardingCompleted: true });
+          // If already completed AND not in edit mode, go to dashboard
+          if (profile.onboardingCompleted && !isEditing) {
             navigate('/dashboard');
             return;
           }
 
-          // Pre-fill form with existing data
+          // Load existing data (for editing OR resuming incomplete onboarding)
           setFormData(prev => ({
             ...prev,
-
-            // strings: keep || so empty/undefined falls back
             firstName: profile.firstName || prev.firstName,
             lastName: profile.lastName || prev.lastName,
             phone: profile.phone || prev.phone,
-
             linkedInUrl: profile.linkedInUrl || prev.linkedInUrl,
             githubUrl: profile.githubUrl || prev.githubUrl,
             portfolioUrl: profile.portfolioUrl || prev.portfolioUrl,
-
             address: profile.address || prev.address,
             city: profile.city || prev.city,
             state: profile.state || prev.state,
             zipCode: profile.zipCode || prev.zipCode,
             country: profile.country || prev.country,
-
-            // booleans: MUST use ?? so false stays false
-            isUsCitizen: profile.isUsCitizen ?? prev.isUsCitizen,
-            requiresSponsorship: profile.requiresSponsorship ?? prev.requiresSponsorship,
-            hasWorkVisa: profile.hasWorkVisa ?? prev.hasWorkVisa,
-            willingToRelocate: profile.willingToRelocate ?? prev.willingToRelocate,
-
-            // other fields
+            isUsCitizen: profile.isUsCitizen !== undefined ? profile.isUsCitizen : prev.isUsCitizen,
             workAuthorization: profile.workAuthorization || prev.workAuthorization,
+            requiresSponsorship: profile.requiresSponsorship !== undefined ? profile.requiresSponsorship : prev.requiresSponsorship,
+            hasWorkVisa: profile.hasWorkVisa !== undefined ? profile.hasWorkVisa : prev.hasWorkVisa,
             visaType: profile.visaType || prev.visaType,
-
+            willingToRelocate: profile.willingToRelocate !== undefined ? profile.willingToRelocate : prev.willingToRelocate,
             desiredJobTitle: profile.desiredJobTitle || prev.desiredJobTitle,
             desiredSalary: profile.desiredSalary || prev.desiredSalary,
             yearsOfExperience: profile.yearsOfExperience || prev.yearsOfExperience,
             preferredLocations: profile.preferredLocations || prev.preferredLocations,
             availableStartDate: profile.availableStartDate || prev.availableStartDate,
-
             highestDegree: profile.highestDegree || prev.highestDegree,
             university: profile.university || prev.university,
             major: profile.major || prev.major,
             educationStartDate: profile.educationStartDate || prev.educationStartDate,
             educationEndDate: profile.educationEndDate || prev.educationEndDate,
-
             veteranStatus: profile.veteranStatus || prev.veteranStatus,
             disabilityStatus: profile.disabilityStatus || prev.disabilityStatus,
             gender: profile.gender || prev.gender,
             ethnicity: profile.ethnicity || prev.ethnicity,
             lgbtqIdentity: profile.lgbtqIdentity || prev.lgbtqIdentity,
-
             workExperience: profile.workExperience || prev.workExperience || [],
           }));
         }
@@ -340,9 +276,6 @@ const OnboardingPage: React.FC = () => {
         }
         return true;
       case 4:
-        // Work Experience is optional (can skip if no experience)
-        // If they are in the middle of editing/adding, warn them?
-        // Ideally we auto-save or force them to finish/cancel.
         if (jobForm.company || jobForm.jobTitle) {
           setError('Please save or cancel your current entry before continuing.');
           return false;
@@ -476,630 +409,44 @@ const OnboardingPage: React.FC = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="onboarding-step">
-            <h2> Let's get to know you</h2>
-            <p className="step-description">This info will be used to auto-fill job applications.</p>
-
-            {/* Resume Quick Fill Section */}
-            {!resumeParseSuccess && (
-              <div className="resume-autofill-section" style={{
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))',
-                border: '2px dashed rgba(99, 102, 241, 0.4)',
-                borderRadius: '12px',
-                padding: '24px',
-                marginBottom: '24px',
-                textAlign: 'center'
-              }}>
-                <h3 style={{ margin: '0 0 8px 0', color: 'var(--primary)' }}>⚡ Quick Fill from Resume</h3>
-                <p style={{ margin: '0 0 16px 0', opacity: 0.8, fontSize: '14px' }}>
-                  Upload your resume to auto-fill most fields instantly
-                </p>
-                <label style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '12px 24px',
-                  background: 'var(--primary)',
-                  color: 'white',
-                  borderRadius: '8px',
-                  cursor: isParsingResume ? 'wait' : 'pointer',
-                  opacity: isParsingResume ? 0.7 : 1,
-                }}>
-                  {isParsingResume ? (
-                    <>Parsing Resume...</>
-                  ) : (
-                    <>📄 Upload PDF Resume</>
-                  )}
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleResumeUpload}
-                    disabled={isParsingResume}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-                <p style={{ margin: '12px 0 0 0', fontSize: '12px', opacity: 0.6 }}>
-                  Or fill in the fields manually below
-                </p>
-              </div>
-            )}
-
-            {resumeParseSuccess && (
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginBottom: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span style={{ fontSize: '20px' }}>✅</span>
-                <span>Resume parsed! Fields have been auto-filled. Review and edit as needed.</span>
-              </div>
-            )}
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>First Name *</label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="John"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Last Name *</label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Doe"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="(555) 123-4567"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>LinkedIn Profile *</label>
-              <input
-                type="url"
-                name="linkedInUrl"
-                value={formData.linkedInUrl}
-                onChange={handleChange}
-                placeholder="https://linkedin.com/in/yourprofile"
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>GitHub Profile</label>
-                <input
-                  type="url"
-                  name="githubUrl"
-                  value={formData.githubUrl}
-                  onChange={handleChange}
-                  placeholder="https://github.com/username"
-                />
-              </div>
-              <div className="form-group">
-                <label>Portfolio Website</label>
-                <input
-                  type="url"
-                  name="portfolioUrl"
-                  value={formData.portfolioUrl}
-                  onChange={handleChange}
-                  placeholder="https://yourportfolio.com"
-                />
-              </div>
-            </div>
-          </div>
+          <BasicInfoStep
+            formData={formData}
+            onChange={handleChange}
+            isParsingResume={isParsingResume}
+            resumeParseSuccess={resumeParseSuccess}
+            onResumeUpload={handleResumeUpload}
+          />
         );
-
       case 2:
-        return (
-          <div className="onboarding-step">
-            <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>Where are you located?</h2>
-            <p className="step-description">Your location helps match you with relevant opportunities.</p>
-
-            <div className="form-group">
-              <label>Street Address *</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="123 Main Street"
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>City *</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="San Francisco"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>State *</label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="CA"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>ZIP Code *</label>
-                <input
-                  type="text"
-                  name="zipCode"
-                  value={formData.zipCode}
-                  onChange={handleChange}
-                  placeholder="94102"
-                />
-              </div>
-              <div className="form-group">
-                <label>Country *</label>
-                <select name="country" value={formData.country} onChange={handleChange}>
-                  <option value="United States">United States</option>
-                  <option value="Canada">Canada</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        );
-
+        return <LocationStep formData={formData} onChange={handleChange} />;
       case 3:
-        return (
-          <div className="onboarding-step">
-            <h2> Work Authorization *</h2>
-            <p className="step-description">Many applications ask about your eligibility to work.</p>
-
-            <div className="form-group checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="isUsCitizen"
-                  checked={formData.isUsCitizen}
-                  onChange={handleChange}
-                />
-                <span>
-                  I am a U.S. Citizen{' '}
-                  <span className={`check-pill ${formData.isUsCitizen ? 'on' : ''}`}>
-                    {formData.isUsCitizen ? '✓' : 'X'}
-                  </span>
-                </span>
-              </label>
-            </div>
-
-            {!formData.isUsCitizen && (
-              <>
-                <div className="form-group">
-                  <label>Work Authorization Status</label>
-                  <select name="workAuthorization" value={formData.workAuthorization} onChange={handleChange}>
-                    <option value="">Select...</option>
-
-                    <optgroup label="Permanent Authorization">
-                      <option value="Green Card">Green Card / Permanent Resident</option>
-                      <option value="Asylee/Refugee">Asylee / Refugee</option>
-                    </optgroup>
-
-                    <optgroup label="Work Visas">
-                      <option value="H1B">H-1B Visa</option>
-                      <option value="H1B1">H-1B1 Visa (Chile/Singapore)</option>
-                      <option value="H4 EAD">H-4 EAD (H-4 with Work Authorization)</option>
-                      <option value="L1">L-1 Visa (Intracompany Transfer)</option>
-                      <option value="L2 EAD">L-2 EAD (L-2 with Work Authorization)</option>
-                      <option value="O1">O-1 Visa (Extraordinary Ability)</option>
-                      <option value="TN">TN Visa (USMCA/NAFTA)</option>
-                      <option value="E1">E-1 Visa (Treaty Trader)</option>
-                      <option value="E2">E-2 Visa (Treaty Investor)</option>
-                      <option value="E3">E-3 Visa (Australian Specialty)</option>
-                    </optgroup>
-
-                    <optgroup label="Student/Training Visas">
-                      <option value="F1 OPT">F-1 OPT (Optional Practical Training)</option>
-                      <option value="F1 STEM OPT">F-1 STEM OPT Extension</option>
-                      <option value="F1 CPT">F-1 CPT (Curricular Practical Training)</option>
-                      <option value="J1">J-1 Visa (Exchange Visitor)</option>
-                      <option value="J1 Academic Training">J-1 Academic Training</option>
-                      <option value="M1">M-1 Visa (Vocational Student)</option>
-                    </optgroup>
-
-                    <optgroup label="Other">
-                      <option value="EAD">EAD (Employment Authorization Document)</option>
-                      <option value="Pending Adjustment">Pending Adjustment of Status</option>
-                      <option value="DACA">DACA</option>
-                      <option value="TPS">TPS (Temporary Protected Status)</option>
-                      <option value="Other">Other Work Authorization</option>
-                      <option value="None">No Current Authorization</option>
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div className="form-group checkbox-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="requiresSponsorship"
-                      checked={formData.requiresSponsorship}
-                      onChange={handleChange}
-                    />
-                    <span>
-                      I will require visa sponsorship now or in the future{' '}
-                      <span className={`check-pill ${formData.requiresSponsorship ? 'on' : ''}`}>
-                        {formData.requiresSponsorship ? '✓' : 'X'}
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              </>
-            )}
-          </div>
-        );
-
+        return <WorkAuthorizationStep formData={formData} onChange={handleChange} />;
       case 4:
         return (
-          <div className="onboarding-step">
-            <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>Work Experience</h2>
-            <p className="step-description">Add your employment history for complex auto-fills.</p>
-
-            {/* List of added jobs */}
-            <div className="jobs-list">
-              {formData.workExperience.map((job, idx) => (
-                <div key={idx} className="job-card">
-                  <div className="job-header">
-                    <div>
-                      <h4 className="job-title">{job.jobTitle}</h4>
-                      <div className="job-company">{job.company}</div>
-                      <div className="job-meta">
-                        {job.startDate} - {job.isCurrent ? 'Present' : job.endDate} • {job.location}
-                      </div>
-                    </div>
-                    <div className="job-actions">
-                      <button onClick={() => editJob(idx)} className="btn-icon" title="Edit">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                      </button>
-                      <button onClick={() => deleteJob(idx)} className="btn-icon delete" title="Delete">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Add/Edit Form */}
-            <div className="add-job-form">
-              <h3>
-                {editingJobIndex !== null ? 'Edit Position' : 'Add New Position'}
-              </h3>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Company *</label>
-                  <input type="text" name="company" value={jobForm.company} onChange={handleJobChange} placeholder="Google" />
-                </div>
-                <div className="form-group">
-                  <label>Job Title *</label>
-                  <input type="text" name="jobTitle" value={jobForm.jobTitle} onChange={handleJobChange} placeholder="Software Engineer" />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Start Date (YYYY-MM) *</label>
-                  <input type="text" name="startDate" value={jobForm.startDate} onChange={handleJobChange} placeholder="2022-01" />
-                </div>
-                <div className="form-group">
-                  <label>End Date (YYYY-MM)</label>
-                  <input
-                    type="text"
-                    name="endDate"
-                    value={jobForm.endDate}
-                    onChange={handleJobChange}
-                    placeholder="2023-05"
-                    disabled={jobForm.isCurrent}
-                    style={jobForm.isCurrent ? { opacity: 0.5, background: '#eee' } : {}}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group checkbox-group">
-                <label className="checkbox-label">
-                  <input type="checkbox" name="isCurrent" checked={jobForm.isCurrent} onChange={handleJobChange} />
-                  <span>I currently work here</span>
-                </label>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Location</label>
-                  <input type="text" name="location" value={jobForm.location} onChange={handleJobChange} placeholder="New York, NY" />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Description (Responsibilities)</label>
-                <textarea
-                  name="description"
-                  value={jobForm.description}
-                  onChange={handleJobChange}
-                  rows={4}
-                  placeholder="Describe your key responsibilities and achievements..."
-                />
-              </div>
-
-              <div className="add-job-actions">
-                <button
-                  type="button"
-                  onClick={saveJob}
-                  disabled={!jobForm.company || !jobForm.jobTitle}
-                  className="btn-save-job"
-                >
-                  {editingJobIndex !== null ? 'Update Position' : 'Add Position'}
-                </button>
-                {editingJobIndex !== null && (
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="btn-cancel-job"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <p className="helper-text">
-              Note: You can always add more experience later in Settings.
-            </p>
-          </div>
+          <WorkExperienceStep
+            formData={formData}
+            jobForm={jobForm}
+            editingJobIndex={editingJobIndex}
+            onJobChange={handleJobChange}
+            onSaveJob={saveJob}
+            onEditJob={editJob}
+            onDeleteJob={deleteJob}
+            onCancelEdit={cancelEdit}
+          />
         );
-
       case 5:
-        return (
-          <div className="onboarding-step">
-            <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg>Job Preferences</h2>
-            <p className="step-description">Tell us what you're looking for in your next role.</p>
-
-            <div className="form-group">
-              <label>Desired Job Title</label>
-              <input
-                type="text"
-                name="desiredJobTitle"
-                value={formData.desiredJobTitle}
-                onChange={handleChange}
-                placeholder="Software Engineer"
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Desired Salary</label>
-                <input
-                  type="text"
-                  name="desiredSalary"
-                  value={formData.desiredSalary}
-                  onChange={handleChange}
-                  placeholder="$100,000"
-                />
-              </div>
-              <div className="form-group">
-                <label>Years of Experience</label>
-                <select name="yearsOfExperience" value={formData.yearsOfExperience} onChange={handleChange}>
-                  <option value="">Select...</option>
-                  <option value="0-1">0-1 years</option>
-                  <option value="1-3">1-3 years</option>
-                  <option value="3-5">3-5 years</option>
-                  <option value="5-10">5-10 years</option>
-                  <option value="10+">10+ years</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="willingToRelocate"
-                  checked={formData.willingToRelocate}
-                  onChange={handleChange}
-                />
-                <span>
-                  I am willing to relocate{' '}
-                  <span className={`check-pill ${formData.willingToRelocate ? 'on' : ''}`}>
-                    {formData.willingToRelocate ? '✓' : 'X'}
-                  </span>
-                </span>
-              </label>
-            </div>
-
-            <div className="form-group">
-              <label>When can you start?</label>
-              <input
-                type="date"
-                name="availableStartDate"
-                value={formData.availableStartDate}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Highest Degree</label>
-                <select name="highestDegree" value={formData.highestDegree} onChange={handleChange}>
-                  <option value="">Select...</option>
-                  <option value="High School">High School</option>
-                  <option value="Associate">Associate's Degree</option>
-                  <option value="Bachelor">Bachelor's Degree</option>
-                  <option value="Master">Master's Degree</option>
-                  <option value="PhD">PhD / Doctorate</option>
-                  <option value="Bootcamp">Bootcamp / Certification</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Major / Field of Study</label>
-                <input
-                  type="text"
-                  name="major"
-                  value={formData.major}
-                  onChange={handleChange}
-                  placeholder="Computer Science"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>University / School</label>
-                <input
-                  type="text"
-                  name="university"
-                  value={formData.university}
-                  onChange={handleChange}
-                  placeholder="Stanford University"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>College Start Date (MM/YYYY)</label>
-                <input
-                  type="text"
-                  name="educationStartDate"
-                  value={formData.educationStartDate}
-                  onChange={handleChange}
-                  placeholder="08/2023"
-                />
-              </div>
-              <div className="form-group">
-                <label>College End Date (MM/YYYY)</label>
-                <input
-                  type="text"
-                  name="educationEndDate"
-                  value={formData.educationEndDate}
-                  onChange={handleChange}
-                  placeholder="05/2027"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
+        return <JobPreferencesStep formData={formData} onChange={handleChange} />;
       case 6:
-        return (
-          <div className="onboarding-step">
-            <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>Optional Information</h2>
-            <p className="step-description">
-              Many applications ask these for Equal Employment Opportunity reporting.
-              All fields are optional and you can choose "Prefer not to say".
-            </p>
-
-            <div className="form-group">
-              <label>Veteran Status</label>
-              <select name="veteranStatus" value={formData.veteranStatus} onChange={handleChange}>
-                <option value="Prefer not to say">Prefer not to say</option>
-                <option value="Yes">Yes, I am a veteran</option>
-                <option value="No">No, I am not a veteran</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Disability Status</label>
-              <select name="disabilityStatus" value={formData.disabilityStatus} onChange={handleChange}>
-                <option value="Prefer not to say">Prefer not to say</option>
-                <option value="Yes">Yes, I have a disability</option>
-                <option value="No">No, I don't have a disability</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Gender</label>
-              <select name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="Prefer not to say">Prefer not to say</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Non-binary">Non-binary</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Race / Ethnicity</label>
-              <select name="ethnicity" value={formData.ethnicity} onChange={handleChange}>
-                <option value="Prefer not to say">Prefer not to say</option>
-                <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
-                <option value="Asian">Asian</option>
-                <option value="Black or African American">Black or African American</option>
-                <option value="Hispanic or Latino">Hispanic or Latino</option>
-                <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
-                <option value="White">White</option>
-                <option value="Two or More Races">Two or More Races</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Do you identify as LGBTQ+?</label>
-              <select name="lgbtqIdentity" value={formData.lgbtqIdentity} onChange={handleChange}>
-                <option value="Prefer not to say">I don't wish to answer</option>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-          </div>
-        );
-
+        return <EEOInfoStep formData={formData} onChange={handleChange} />;
       default:
         return null;
     }
   };
 
-  // Show loading while checking profile
   if (isLoading) {
     return (
       <div className="onboarding-container">
-        <div className="onboarding-card" style={{ textAlign: 'center', padding: '60px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </div>
-          <h2>Loading your profile...</h2>
-          <p>Please wait while we check your information.</p>
-        </div>
+        <div className="loading-spinner">Loading...</div>
       </div>
     );
   }
@@ -1107,25 +454,38 @@ const OnboardingPage: React.FC = () => {
   return (
     <div className="onboarding-container">
       <div className="onboarding-card">
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+
+
+        {/* Progress Bar */}
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            />
+          </div>
+          <span className="progress-text">Step {currentStep} of {totalSteps}</span>
         </div>
 
-        <div className="step-indicator">
-          Step {currentStep} of {totalSteps}
+        {/* Error Message */}
+        {error && (
+          <div className="error-message">
+            <span>⚠️</span> {error}
+          </div>
+        )}
+
+        {/* Step Content */}
+        <div className="step-content">
+          {renderStep()}
         </div>
 
-        {error && <div className="error-message">{error}</div>}
-
-        {renderStep()}
-
-        <div className="button-row">
+        {/* Navigation Buttons */}
+        <div className="button-group">
           {currentStep > 1 && (
             <button type="button" className="btn-secondary" onClick={prevStep}>
               ← Back
             </button>
           )}
-
           {currentStep < totalSteps ? (
             <button type="button" className="btn-primary" onClick={nextStep}>
               Continue →
@@ -1133,26 +493,14 @@ const OnboardingPage: React.FC = () => {
           ) : (
             <button
               type="button"
-              className="btn-primary btn-submit"
+              className="btn-primary submit"
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Saving...' : (isEditMode ? (
-                <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>Save Changes</>
-              ) : (
-                <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }}><path d="M22 2L15 22l-4-9-9-4z" /></svg>Complete Setup</>
-              ))}
+              {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Complete Setup')}
             </button>
           )}
         </div>
-
-        {isEditMode && (
-          <div className="skip-section">
-            <button type="button" className="btn-skip" onClick={() => navigate('/settings')}>
-              ← Cancel and go back
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
