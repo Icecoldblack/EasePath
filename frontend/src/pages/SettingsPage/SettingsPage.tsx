@@ -427,7 +427,7 @@ const SettingsPage: React.FC = () => {
             <span className="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg></span>
             {!sidebarCollapsed && <span className="nav-text">Find Jobs</span>}
           </motion.div>
-          <motion.div className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`} onClick={() => handleNavClick('auto-apply', '/auto-apply')}>
+          <motion.div className={`nav-item ${activeNav === 'applications' ? 'active' : ''}`} onClick={() => handleNavClick('applications', '/applications')}>
             <span className="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg></span>
             {!sidebarCollapsed && <span className="nav-text">My Applications</span>}
           </motion.div>

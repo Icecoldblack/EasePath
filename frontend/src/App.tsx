@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage/HomePage';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
-import AutoApplyPage from './pages/AutoApplyPage/AutoApplyPage';
+import ApplicationsPage from './pages/ApplicationsPage/ApplicationsPage';
 import SettingsPage from './pages/SettingsPage/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage/OnboardingPage';
 import JobsPage from './pages/JobsPage/JobsPage';
@@ -27,7 +27,7 @@ const AppContent: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/auto-apply" element={<AutoApplyPage />} />
+            <Route path="/applications" element={<ApplicationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/resume" element={<ResumePage />} />

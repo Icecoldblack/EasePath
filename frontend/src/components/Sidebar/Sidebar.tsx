@@ -48,8 +48,8 @@ const NAV_ITEMS: NavItem[] = [
         ),
     },
     {
-        id: 'auto-apply',
-        path: '/auto-apply',
+        id: 'applications',
+        path: '/applications',
         label: 'My Applications',
         icon: (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

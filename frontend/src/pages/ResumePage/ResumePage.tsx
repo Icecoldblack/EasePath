@@ -429,8 +429,8 @@ const ResumePage: React.FC = () => {
           </motion.div>
 
           <motion.div
-            className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`}
-            onClick={() => handleNavClick('auto-apply', '/auto-apply')}
+            className={`nav-item ${activeNav === 'applications' ? 'active' : ''}`}
+            onClick={() => handleNavClick('applications', '/applications')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >

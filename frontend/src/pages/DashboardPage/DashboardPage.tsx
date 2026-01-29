@@ -273,8 +273,8 @@ const DashboardPage: React.FC = () => {
           </motion.div>
 
           <motion.div
-            className={`nav-item ${activeNav === 'auto-apply' ? 'active' : ''}`}
-            onClick={() => handleNavClick('auto-apply', '/auto-apply')}
+            className={`nav-item ${activeNav === 'applications' ? 'active' : ''}`}
+            onClick={() => handleNavClick('applications', '/applications')}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -541,7 +541,7 @@ const DashboardPage: React.FC = () => {
               className="view-all-btn"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/auto-apply')}
+              onClick={() => navigate('/applications')}
             >
               <span className="view-all-icon">+</span> View All
             </motion.button>
@@ -624,7 +624,7 @@ const DashboardPage: React.FC = () => {
       {/* Quick Action FAB */}
       <motion.button
         className="quick-actions-fab"
-        onClick={() => navigate('/auto-apply')}
+        onClick={() => navigate('/applications')}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ duration: 0.3, delay: 1 }}
