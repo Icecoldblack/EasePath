@@ -14,16 +14,36 @@ import jakarta.annotation.PostConstruct;
 import java.util.Collections;
 
 /**
- * Service for verifying Google OAuth2 ID tokens.
+ * GOOGLE AUTH SERVICE - JWT Token Verification
  * 
- * SECURITY: This service performs cryptographic verification of tokens:
- * - Verifies the token signature against Google's public keys
- * - Validates the issuer (must be accounts.google.com)
- * - Validates the audience (must match our Client ID)
- * - Checks token expiration
+ * WHAT IS A JWT (JSON Web Token)?
+ * A JWT has 3 parts separated by dots: header.payload.signature
+ * Example: eyJhbGciOiJSUzI1NiJ9.eyJlbWFpbCI6InVzZXJAZ21haWwuY29tIn0.signature
  * 
- * DO NOT modify this to skip verification - it would create a critical
- * vulnerability.
+ * - HEADER: Algorithm used to sign (e.g., RS256 = RSA + SHA-256)
+ * - PAYLOAD: User data (email, name, expiration time, etc.)
+ * - SIGNATURE: Cryptographic proof that Google created this token
+ * 
+ * HOW VERIFICATION WORKS:
+ * 1. Google signs tokens with their PRIVATE key (only Google has this)
+ * 2. We verify signatures using Google's PUBLIC key (anyone can get this)
+ * 3. If signature matches → token is authentic and unmodified
+ * 4. If signature fails → token was forged or tampered with
+ * 
+ * WHAT WE CHECK:
+ * ✓ Signature: Token was signed by Google's private key
+ * ✓ Issuer: Token from accounts.google.com (not fake-google.com)
+ * ✓ Audience: Token was meant for OUR app (not a different app)
+ * ✓ Expiration: Token hasn't expired (Google tokens last ~1 hour)
+ * ✓ Email: User has a verified email address
+ * 
+ * WHY USE GOOGLE'S LIBRARY?
+ * - Google automatically rotates their keys for security
+ * - Their library caches keys and handles key rotation
+ * - Rolling your own = easy to make security mistakes
+ * 
+ * SECURITY: DO NOT modify this to skip verification - it would create a
+ * critical vulnerability allowing anyone to impersonate any user.
  */
 @Service
 public class GoogleAuthService {

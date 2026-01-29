@@ -22,16 +22,53 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * JOB SEARCH SERVICE - Aggregates multiple job search APIs with caching
+ * 
+ * DESIGN PATTERNS USED:
+ * 
+ * 1. FALLBACK PATTERN (Circuit Breaker-like)
+ * - Primary API: JSearch (RapidAPI) - Fast, good data quality
+ * - Fallback API: TheirStack - Alternative when primary fails
+ * - Why? External APIs can fail, hit rate limits, or go down
+ * - This ensures users always get job results
+ * 
+ * 2. CACHING PATTERN
+ * - Cache key: Unique hash of all search parameters
+ * - Cache storage: MongoDB (JobSearchCache collection)
+ * - TTL: 72 hours (configured in JobSearchCache model)
+ * - Why? API calls cost money (RapidAPI charges per request)
+ * - Same search within 72 hours = free, instant response
+ * 
+ * 3. ADAPTER PATTERN (transformTheirStackResponse method)
+ * - JSearch and TheirStack return different JSON formats
+ * - Frontend expects ONE consistent format
+ * - The adapter transforms TheirStack -> JSearch format
+ * - Why? Single frontend code, multiple data sources
+ * 
+ * COST OPTIMIZATION:
+ * - RapidAPI: ~$0.001 per request (adds up with many users!)
+ * - TheirStack: Usage-based pricing
+ * - Caching reduces costs by 90%+ for popular searches
+ */
 @Service
 public class JobSearchService {
 
     private static final Logger log = LoggerFactory.getLogger(JobSearchService.class);
 
+    // MongoDB repository for caching search results
     private final JobSearchRepository jobSearchRepository;
-    private final WebClient jsearchClient;
-    private final WebClient theirStackClient;
+
+    // WebClient is Spring's non-blocking HTTP client (like axios for Java)
+    // We have TWO clients - one for each API, preconfigured with base URLs
+    private final WebClient jsearchClient; // Primary API
+    private final WebClient theirStackClient; // Fallback API
+
+    // JSON parsing library (like JSON.parse in JavaScript)
     private final ObjectMapper objectMapper;
 
+    // API keys loaded from environment variables via @Value annotation
+    // These are injected by Spring from application.properties or .env
     @Value("${theirstack.api-key:}")
     private String theirStackApiKey;
 
@@ -41,60 +78,90 @@ public class JobSearchService {
     @Value("${rapidapi.host:jsearch.p.rapidapi.com}")
     private String rapidApiHost;
 
+    // Constructor injection - Spring provides the WebClient builder
     public JobSearchService(JobSearchRepository jobSearchRepository, WebClient.Builder webClientBuilder) {
         this.jobSearchRepository = jobSearchRepository;
+        // .clone() creates independent clients with different base URLs
         this.jsearchClient = webClientBuilder.clone().baseUrl("https://jsearch.p.rapidapi.com").build();
         this.theirStackClient = webClientBuilder.clone().baseUrl("https://api.theirstack.com").build();
         this.objectMapper = new ObjectMapper();
     }
 
+    /**
+     * MAIN SEARCH METHOD - Orchestrates caching and API fallback
+     * 
+     * FLOW:
+     * 1. Check cache → return immediately if found (FREE + FAST)
+     * 2. Try JSearch API → cache and return if successful
+     * 3. If JSearch fails → try TheirStack API → cache and return
+     * 4. If both fail → return error message
+     * 
+     * @return JSON string matching JSearch format (frontend expects this)
+     */
     public String searchJobs(String query, String numPages, String datePosted, String remoteJobsOnly,
             String employmentTypes, String jobRequirements) {
-        // Create a unique cache key based on parameters
+
+        // ══════════════════════════════════════════════════════════════════
+        // STEP 1: Create cache key from ALL parameters
+        // ══════════════════════════════════════════════════════════════════
+        // Different parameters = different cache entry
+        // "software engineer|1|week|true|FULLTIME|" is a unique search
         String cacheKey = "jobs|" + query + "|" + numPages + "|" + datePosted + "|" + remoteJobsOnly + "|"
                 + employmentTypes + "|" + jobRequirements;
 
-        // 1. Check cache first
+        // ══════════════════════════════════════════════════════════════════
+        // STEP 2: Check cache first (O(1) lookup, no API cost)
+        // ══════════════════════════════════════════════════════════════════
         Optional<JobSearchCache> cached = jobSearchRepository.findByQuery(cacheKey);
         if (cached.isPresent()) {
-            log.info("✅ Returning cached job search results for: {}", cacheKey);
-            return cached.get().getResultJson();
+            log.info(" Returning cached job search results for: {}", cacheKey);
+            return cached.get().getResultJson(); // Return immediately - FREE!
         }
 
-        // 2. Try JSearch (RapidAPI) first - it's our primary API
+        // ══════════════════════════════════════════════════════════════════
+        // STEP 3: Try PRIMARY API (JSearch via RapidAPI)
+        // ══════════════════════════════════════════════════════════════════
         if (rapidApiKey != null && !rapidApiKey.isEmpty()) {
             try {
-                log.info("🔍 Trying JSearch API for: {}", query);
+                log.info(" Trying JSearch API for: {}", query);
                 String result = searchWithJSearch(query, numPages, datePosted, remoteJobsOnly, employmentTypes,
                         jobRequirements);
                 if (result != null && !result.isEmpty()) {
-                    // Cache the result
+                    // SUCCESS! Cache for future requests and return
                     jobSearchRepository.save(new JobSearchCache(cacheKey, result));
                     return result;
                 }
             } catch (WebClientResponseException.TooManyRequests e) {
-                log.warn("⚠️ JSearch rate limited, falling back to TheirStack");
+                // 429 = Rate limited (too many requests)
+                log.warn(" JSearch rate limited, falling back to TheirStack");
             } catch (Exception e) {
-                log.warn("⚠️ JSearch failed: {}, falling back to TheirStack", e.getMessage());
+                // Any other error - network, timeout, 500, etc.
+                log.warn(" JSearch failed: {}, falling back to TheirStack", e.getMessage());
             }
         }
 
-        // 3. Fall back to TheirStack
+        // ══════════════════════════════════════════════════════════════════
+        // STEP 4: FALLBACK to secondary API (TheirStack)
+        // ══════════════════════════════════════════════════════════════════
+        // Only reaches here if JSearch failed or is not configured
         if (theirStackApiKey != null && !theirStackApiKey.isEmpty()) {
             try {
-                log.info("🔍 Trying TheirStack API for: {}", query);
+                log.info(" Trying TheirStack API for: {}", query);
                 String result = searchWithTheirStack(query, datePosted, remoteJobsOnly, employmentTypes);
                 if (result != null && !result.isEmpty()) {
-                    // Cache the result
+                    // SUCCESS! Cache and return (already transformed to JSearch format)
                     jobSearchRepository.save(new JobSearchCache(cacheKey, result));
                     return result;
                 }
             } catch (Exception e) {
-                log.error("❌ TheirStack also failed: {}", e.getMessage());
+                log.error(" TheirStack also failed: {}", e.getMessage());
             }
         }
 
-        // 4. Both APIs failed
+        // ══════════════════════════════════════════════════════════════════
+        // STEP 5: BOTH APIS FAILED - Return graceful error
+        // ══════════════════════════════════════════════════════════════════
+        // Don't throw exception - return valid JSON that frontend can handle
         log.error(" All job search APIs failed");
         return "{\"status\":\"ERROR\",\"message\":\"Unable to fetch jobs. Please try again later.\",\"data\":[]}";
     }
