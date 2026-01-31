@@ -543,7 +543,7 @@ const DashboardPage: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/applications')}
             >
-              <span className="view-all-icon">+</span> View All
+              View All
             </motion.button>
           </div>
 
@@ -621,21 +621,7 @@ const DashboardPage: React.FC = () => {
         </motion.div>
       </main>
 
-      {/* Quick Action FAB */}
-      <motion.button
-        className="quick-actions-fab"
-        onClick={() => navigate('/applications')}
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.3, delay: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </motion.button>
+
     </div>
   );
 };
