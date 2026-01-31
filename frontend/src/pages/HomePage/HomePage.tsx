@@ -56,42 +56,88 @@ const HomePage: React.FC = () => {
       try {
         const decoded: any = jwtDecode(response.credential);
 
-        // Check if user has completed onboarding by fetching from backend
-        let onboardingCompleted = false;
-        try {
-          const profileResponse = await fetch(
+        // Save the raw token immediately
+        localStorage.setItem('auth_token', response.credential);
+
+        // Check if this user has logged in before (by email)
+        const hasLoggedInBefore = localStorage.getItem(`user_known_${decoded.email}`);
+
+        if (!hasLoggedInBefore) {
+          // FIRST-TIME USER: Go directly to onboarding (instant!)
+          login({
+            email: decoded.email,
+            name: decoded.name,
+            picture: decoded.picture,
+            googleId: decoded.sub,
+            onboardingCompleted: false
+          });
+          navigate('/onboarding');
+
+          // Check in background if they actually have a profile (maybe from extension)
+          fetch(
             `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(decoded.email)}`,
             {
               headers: {
                 'Authorization': `Bearer ${response.credential}`
               }
             }
-          );
-          if (profileResponse.ok) {
-            const profile = await profileResponse.json();
-            onboardingCompleted = profile.onboardingCompleted === true;
-          }
-        } catch (err) {
-          console.log('Could not fetch profile, will check onboarding');
-        }
+          )
+            .then(res => res.ok ? res.json() : null)
+            .then(profile => {
+              if (profile && profile.onboardingCompleted === true) {
+                // They already completed onboarding (maybe via extension), mark as known and redirect
+                localStorage.setItem(`user_known_${decoded.email}`, 'true');
+                login({
+                  email: decoded.email,
+                  name: decoded.name,
+                  picture: decoded.picture,
+                  googleId: decoded.sub,
+                  onboardingCompleted: true
+                });
+                navigate('/dashboard');
+              }
+            })
+            .catch(() => { });
 
-        // Save the raw token for API requests
-        localStorage.setItem('auth_token', response.credential);
-
-        login({
-          email: decoded.email,
-          name: decoded.name,
-          picture: decoded.picture,
-          googleId: decoded.sub,
-          onboardingCompleted: onboardingCompleted
-        });
-
-        // Navigate based on onboarding status
-        if (onboardingCompleted) {
-          navigate('/dashboard');
         } else {
-          navigate('/onboarding');
+          // RETURNING USER: Go directly to dashboard (instant!)
+          login({
+            email: decoded.email,
+            name: decoded.name,
+            picture: decoded.picture,
+            googleId: decoded.sub,
+            onboardingCompleted: true
+          });
+          navigate('/dashboard');
+
+          // Background check: verify they still have completed onboarding
+          fetch(
+            `${API_BASE_URL}/api/extension/profile?email=${encodeURIComponent(decoded.email)}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${response.credential}`
+              }
+            }
+          )
+            .then(res => res.ok ? res.json() : null)
+            .then(profile => {
+              if (profile && profile.onboardingCompleted !== true) {
+                // Somehow onboarding is incomplete, redirect
+                login({
+                  email: decoded.email,
+                  name: decoded.name,
+                  picture: decoded.picture,
+                  googleId: decoded.sub,
+                  onboardingCompleted: false
+                });
+                navigate('/onboarding');
+              }
+            })
+            .catch(err => {
+              console.log('Could not verify onboarding status, staying on dashboard');
+            });
         }
+
       } catch (error) {
         console.error('Failed to decode token', error);
       }

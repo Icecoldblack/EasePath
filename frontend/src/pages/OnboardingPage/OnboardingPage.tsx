@@ -100,6 +100,12 @@ const OnboardingPage: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const isEditing = urlParams.get('edit') === 'true';
 
+      // For new users (not edit mode), show form immediately - no loading screen
+      // This makes onboarding feel instant after login
+      if (!isEditing) {
+        setIsLoading(false);
+      }
+
       try {
         const token = localStorage.getItem('auth_token');
         const response = await fetch(`${API_BASE_URL}/api/extension/profile?email=${user.email}`, {
@@ -395,6 +401,11 @@ const OnboardingPage: React.FC = () => {
       });
 
       if (!response.ok) throw new Error('Failed to save profile');
+
+      // Mark user as known for instant login next time
+      if (user?.email) {
+        localStorage.setItem(`user_known_${user.email}`, 'true');
+      }
 
       updateUser({ onboardingCompleted: true });
       navigate(isEditMode ? '/settings' : '/dashboard');
