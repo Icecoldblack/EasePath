@@ -22,14 +22,14 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             {/* Resume Quick Fill Section */}
             {!resumeParseSuccess && (
                 <div className="resume-autofill-section" style={{
-                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))',
-                    border: '2px dashed rgba(99, 102, 241, 0.4)',
+                    background: 'linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(163, 113, 247, 0.1))',
+                    border: '2px dashed rgba(88, 166, 255, 0.4)',
                     borderRadius: '12px',
                     padding: '24px',
                     marginBottom: '24px',
                     textAlign: 'center'
                 }}>
-                    <h3 style={{ margin: '0 0 8px 0', color: 'var(--primary)' }}>⚡ Quick Fill from Resume</h3>
+                    <h3 style={{ margin: '0 0 8px 0', color: '#58a6ff' }}>Quick Fill from Resume</h3>
                     <p style={{ margin: '0 0 16px 0', opacity: 0.8, fontSize: '14px' }}>
                         Upload your resume to auto-fill most fields instantly
                     </p>
@@ -38,16 +38,25 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         alignItems: 'center',
                         gap: '8px',
                         padding: '12px 24px',
-                        background: 'var(--primary)',
-                        color: 'white',
+                        background: '#58a6ff',
+                        color: '#0d1117',
                         borderRadius: '8px',
                         cursor: isParsingResume ? 'wait' : 'pointer',
                         opacity: isParsingResume ? 0.7 : 1,
+                        fontWeight: 600,
                     }}>
                         {isParsingResume ? (
                             <>Parsing Resume...</>
                         ) : (
-                            <>📄 Upload PDF Resume</>
+                            <>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                                </svg>
+                                Upload PDF Resume
+                            </>
                         )}
                         <input
                             type="file"
@@ -65,8 +74,8 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
             {resumeParseSuccess && (
                 <div style={{
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    background: 'rgba(88, 166, 255, 0.1)',
+                    border: '1px solid rgba(88, 166, 255, 0.3)',
                     borderRadius: '8px',
                     padding: '12px 16px',
                     marginBottom: '24px',
@@ -74,7 +83,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     alignItems: 'center',
                     gap: '8px'
                 }}>
-                    <span style={{ fontSize: '20px' }}>✅</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
                     <span>Resume parsed! Fields have been auto-filled. Review and edit as needed.</span>
                 </div>
             )}
