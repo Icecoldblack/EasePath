@@ -11,11 +11,11 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
 ## Quick Start
 
 ### Prerequisites
-- Docker Desktop
+- Docker Desktop(only if you working with others for Database access)
 - Node.js 18+
 - Java 21+
 
-### Run with Docker (Recommended)
+### How to run project
 
 ```bash
 # Clone the repo
@@ -25,9 +25,6 @@ cd E_Resume
 # Create .env file
 echo "RESEND_API_KEY=your_key" >> .env
 echo "GOOGLE_CLIENT_ID=your_client_id" >> .env
-
-# Start everything
-docker compose up --build
 ```
 
 **Access:**
@@ -51,11 +48,11 @@ See individual READMEs for detailed setup:
 ```
 E_Resume/
 ├── frontend/          # React + Vite app
-├── backend/           # Spring Boot API
+├── backend/           # Spring Boot / API / Auth
 ├── extension/         # Chrome extension
-└── compose.yaml       # Docker orchestration
 ```
 
 ## License
 
 MIT
+Just dont sell and make this your own thats it. :)
