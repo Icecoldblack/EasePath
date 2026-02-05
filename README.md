@@ -11,7 +11,7 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
 ## Quick Start
 
 ### Prerequisites
-- Docker Desktop(only if you working with others for Database access)
+- Docker Desktop (only for MongoDB)
 - Node.js 18+
 - Java 21+
 
