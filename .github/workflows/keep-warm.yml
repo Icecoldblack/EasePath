@@ -2,7 +2,7 @@ name: Keep API Warm
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes (UTC)
+    - cron: "*/10 * * * *"   # every 10 minutes (UTC)
   workflow_dispatch:         # allow manual run from the Actions tab
 
 permissions:
@@ -18,13 +18,12 @@ jobs:
     env:
       HEALTH_URL: "https://api.easepath.app/api/health"
     steps:
-      - name: Ping health endpoint
+      - name: Ping health endpoint (HEAD)
         run: |
-          # Add timestamp to bust any CDN/proxy cache
-          CACHE_BUST="?t=$(date +%s)"
-          FULL_URL="${HEALTH_URL}${CACHE_BUST}"
-          echo "Pinging $FULL_URL at $(date -u)"
-          # Use GET request to ensure full backend response (not just cached headers)
-          curl --silent --show-error --max-time 30 --retry 3 --retry-delay 5 "$FULL_URL"
-          echo ""
-          echo " Ping successful - backend should stay warm"
+          echo "Pinging $HEALTH_URL at $(date -u)"
+          # Try fast HEAD first
+          curl -I --silent --show-error --max-time 20 --retry 2 --retry-delay 2 "$HEALTH_URL"
+      - name: Fallback GET if HEAD failed
+        if: failure()
+        run: |
+          curl --silent --show-error --max-time 25 --retry 2 --retry-delay 2 "$HEALTH_URL"
