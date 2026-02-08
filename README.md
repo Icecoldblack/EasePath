@@ -20,7 +20,7 @@ EasePath is a Full Stack project (React frontend + Spring Boot backend) that hel
 ```bash
 # Clone the repo
 git clone <repo-url>
-cd E_Resume
+cd EasePath
 
 # Create .env file
 echo "RESEND_API_KEY=your_key" >> .env
