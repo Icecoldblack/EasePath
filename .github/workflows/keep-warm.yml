@@ -2,7 +2,7 @@ name: Keep API Warm
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes (UTC)
+    - cron: "*/5 * * * *"   # GitHub may delay this, but the loop below covers gaps
   workflow_dispatch:         # allow manual run from the Actions tab
 
 permissions:
@@ -11,19 +11,24 @@ permissions:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 60
     concurrency:
       group: keep-warm
-      cancel-in-progress: true
+      cancel-in-progress: true   # new cron trigger seamlessly replaces old run
     env:
       HEALTH_URL: "https://api.easepath.app/api/health"
     steps:
-      - name: Ping health endpoint (HEAD)
+      - name: Ping health endpoint in a loop
         run: |
-          echo "Pinging $HEALTH_URL at $(date -u)"
-          # Try fast HEAD first
-          curl -I --silent --show-error --max-time 20 --retry 2 --retry-delay 2 "$HEALTH_URL"
-      - name: Fallback GET if HEAD failed
-        if: failure()
-        run: |
-          curl --silent --show-error --max-time 25 --retry 2 --retry-delay 2 "$HEALTH_URL"
+          # GitHub cron is unreliable for short intervals (actual gaps can be 40-75 min).
+          # This loop pings every 5 min for ~55 min, so the API never sleeps on Koyeb
+          # (Koyeb free tier sleeps after 60 min of no traffic).
+          # When GitHub fires the next cron, cancel-in-progress replaces this run.
+          for i in $(seq 1 12); do
+            echo "--- Ping #$i at $(date -u) ---"
+            curl -fsS --max-time 20 --retry 2 --retry-delay 5 "$HEALTH_URL" || echo "Ping #$i failed, will retry next cycle"
+            if [ $i -lt 12 ]; then
+              sleep 300
+            fi
+          done
+          echo "Loop complete at $(date -u)"
