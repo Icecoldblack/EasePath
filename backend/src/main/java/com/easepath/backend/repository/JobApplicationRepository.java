@@ -10,4 +10,6 @@ import com.easepath.backend.model.JobApplicationDocument;
 @Repository
 public interface JobApplicationRepository extends MongoRepository<JobApplicationDocument, String> {
     List<JobApplicationDocument> findByUserEmail(String userEmail);
+
+    void deleteByUserEmail(String userEmail);
 }

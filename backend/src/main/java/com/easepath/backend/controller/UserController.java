@@ -31,4 +31,20 @@ public class UserController {
     public ResponseEntity<UserDto> getSampleUser() {
         return ResponseEntity.ok(userService.getSampleUser());
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/me")
+    public ResponseEntity<Void> deleteUser(jakarta.servlet.http.HttpServletRequest request) {
+        com.easepath.backend.model.User currentUser = (com.easepath.backend.model.User) request
+                .getAttribute("currentUser");
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            userService.deleteUser(currentUser.getEmail());
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
 }

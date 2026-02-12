@@ -31,11 +31,11 @@ import java.util.Collections;
  * 4. If signature fails → token was forged or tampered with
  * 
  * WHAT WE CHECK:
- *  Signature: Token was signed by Google's private key
- *  Issuer: Token from accounts.google.com (not fake-google.com)
- *  Audience: Token was meant for OUR app (not a different app)
- *  Expiration: Token hasn't expired (Google tokens last ~1 hour)
- *  Email: User has a verified email address
+ * Signature: Token was signed by Google's private key
+ * Issuer: Token from accounts.google.com (not fake-google.com)
+ * Audience: Token was meant for OUR app (not a different app)
+ * Expiration: Token hasn't expired (Google tokens last ~1 hour)
+ * Email: User has a verified email address
  * 
  * WHY USE GOOGLE'S LIBRARY?
  * - Google automatically rotates their keys for security
@@ -58,7 +58,8 @@ public class GoogleAuthService {
     @PostConstruct
     public void init() {
         if (clientId == null || clientId.isBlank()) {
-            log.error("CRITICAL: google.client.id is not configured! Token verification will fail.");
+            log.error(
+                    "CRITICAL: google.client.id is not configured! Token verification will fail. Please check application.properties or GOOGLE_CLIENT_ID env var.");
             return;
         }
 

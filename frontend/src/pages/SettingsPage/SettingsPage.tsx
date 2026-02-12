@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { isTokenExpired } from '../../utils/apiClient';
 import { checkAdminStatus } from '../../utils/adminService';
 import AdminPanel from './AdminPanel';
 import './SettingsPage.css';
@@ -15,6 +16,9 @@ const SettingsPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Main app sidebar state (collapsed by default for settings page to give more space)
   const [activeNav, setActiveNav] = useState('settings');
@@ -118,6 +122,51 @@ const SettingsPage: React.FC = () => {
       phone: '+1 (555) 123-4567'
     });
     setSaveMessage(null);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteInput !== 'DELETE') return;
+
+    // Check if token is expired BEFORE attempting deletion
+    if (isTokenExpired()) {
+      alert('Your session has expired. Please log out and log back in, then try deleting your account again.');
+      return;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      alert('No auth token found. Please log out and log back in first.');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        alert('Account deleted successfully.');
+        localStorage.clear();
+        logout();
+        navigate('/');
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to delete account:', response.status, errorText);
+        alert(`Failed to delete account (Status ${response.status}). Please log out, log back in, and try again.`);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Network error while deleting account. Is the backend running?');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const menuItems = [
@@ -367,6 +416,81 @@ const SettingsPage: React.FC = () => {
                 Edit Preferences
               </button>
             </div>
+          </div>
+        );
+
+      case 'security':
+        return (
+          <div className="settings-panel-content">
+            <div className="panel-header">
+              <h2>Security</h2>
+            </div>
+
+            <div className="security-section">
+
+
+              <div className="danger-zone">
+                <h3>Danger Zone</h3>
+                <div className="danger-item">
+                  <div className="danger-info">
+                    <h4>Delete Account</h4>
+                    <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                  </div>
+                  <button className="btn-danger" onClick={() => setShowDeleteConfirm(true)}>
+                    Delete Account
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+              <div className="modal-overlay">
+                <div className="modal-content delete-confirm-modal">
+                  <h3>Delete Account?</h3>
+                  <p>This will permanently delete your profile, job applications, and all other data. This action cannot be undone.</p>
+
+                  <div className="delete-input-group">
+                    <label>Type <strong>DELETE</strong> to confirm:</label>
+                    <input
+                      type="text"
+                      value={deleteInput}
+                      onChange={(e) => setDeleteInput(e.target.value)}
+                      placeholder="DELETE"
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        marginTop: '8px',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)'
+                      }}
+                    />
+                  </div>
+
+                  <div className="modal-actions">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteInput('');
+                      }}
+                      disabled={isDeleting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-danger"
+                      onClick={handleDeleteAccount}
+                      disabled={deleteInput !== 'DELETE' || isDeleting}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 

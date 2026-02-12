@@ -7,4 +7,6 @@ public interface UserService {
     UserDto createUser(UserDto user);
 
     UserDto getSampleUser();
+
+    void deleteUser(String email);
 }

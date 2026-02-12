@@ -124,15 +124,16 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             request.setAttribute("currentUser", user);
             log.info("Authenticated user: {} for path: {}", user.getEmail(), path);
 
-            // PASS THE BATON - Continue to the next filter or controller
-            // This is the "chain" part of Filter Chain pattern
-            filterChain.doFilter(request, response);
-
         } catch (Exception e) {
             // Token verification threw an exception (network error, invalid format, etc.)
             log.error("Error verifying token for path {}: {}", path, e.getMessage());
             sendUnauthorized(response, "Token verification failed");
+            return;
         }
+
+        // PASS THE BATON - Continue to the next filter or controller
+        // This is OUTSIDE try-catch so controller errors propagate correctly
+        filterChain.doFilter(request, response);
     }
 
     /**

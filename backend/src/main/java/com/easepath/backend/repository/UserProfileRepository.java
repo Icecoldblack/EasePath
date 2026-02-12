@@ -9,8 +9,10 @@ import com.easepath.backend.model.UserProfileDocument;
 
 @Repository
 public interface UserProfileRepository extends MongoRepository<UserProfileDocument, String> {
-    
+
     Optional<UserProfileDocument> findByGoogleId(String googleId);
-    
+
     Optional<UserProfileDocument> findByEmail(String email);
+
+    void deleteByEmail(String email);
 }
