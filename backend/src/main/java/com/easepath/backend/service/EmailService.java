@@ -19,7 +19,7 @@ import jakarta.mail.internet.MimeMessage;
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-    private static final String FROM_EMAIL = "EasePath@mail.easepath.app";
+    private static final String FROM_EMAIL = "Welcome@mail.easepath.app";
     private static final java.util.regex.Pattern EMAIL_REGEX = java.util.regex.Pattern
             .compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
