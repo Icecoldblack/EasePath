@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { API_BASE_URL } from '../../config';
@@ -368,21 +370,21 @@ const ApplicationsPage: React.FC = () => {
                                                 <line x1="3" y1="10" x2="21" y2="10" />
                                             </svg>
                                             {app.status === 'interview' ? (
-                                                <input
-                                                    type="date"
-                                                    value={app.interviewDate ? new Date(app.interviewDate).toISOString().split('T')[0] : ''}
-                                                    onChange={(e) => {
-                                                        if (!e.target.value) {
+                                                <DatePicker
+                                                    selected={app.interviewDate ? new Date(app.interviewDate) : null}
+                                                    onChange={(date: Date | null) => {
+                                                        if (!date) {
                                                             handleStatusUpdate(app.id, 'interview', '');
                                                             return;
                                                         }
-                                                        const date = new Date(e.target.value);
-                                                        // Set time to noon to avoid timezone shifting issues on basic date selection
                                                         date.setHours(12, 0, 0, 0);
                                                         handleStatusUpdate(app.id, 'interview', date.toISOString());
                                                     }}
+                                                    dateFormat="MM/dd/yyyy"
+                                                    placeholderText="MM/DD/YYYY"
                                                     className="date-picker-input"
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    popperPlacement="bottom-start"
+                                                    showPopperArrow={false}
                                                 />
                                             ) : (
                                                 new Date(getStatusDate(app)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
