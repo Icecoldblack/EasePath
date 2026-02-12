@@ -451,12 +451,12 @@ const SettingsPage: React.FC = () => {
                   <p>This will permanently delete your profile, job applications, and all other data. This action cannot be undone.</p>
 
                   <div className="delete-input-group">
-                    <label>Type <strong>DELETE</strong> to confirm:</label>
+                    <label>Type <strong>EASEPATH</strong> to confirm:</label>
                     <input
                       type="text"
                       value={deleteInput}
                       onChange={(e) => setDeleteInput(e.target.value)}
-                      placeholder="DELETE"
+                      placeholder="EASEPATH"
                       style={{
                         width: '100%',
                         padding: '10px',
@@ -483,7 +483,7 @@ const SettingsPage: React.FC = () => {
                     <button
                       className="btn-danger"
                       onClick={handleDeleteAccount}
-                      disabled={deleteInput !== 'DELETE' || isDeleting}
+                      disabled={deleteInput !== 'EASEPATH' || isDeleting}
                     >
                       {isDeleting ? 'Deleting...' : 'Delete Permanently'}
                     </button>
