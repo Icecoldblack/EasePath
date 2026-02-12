@@ -18,6 +18,9 @@ public class JobApplicationDocument {
     private String matchReason;
     private LocalDateTime appliedAt;
     private String resumeId;
+    private LocalDateTime interviewDate;
+    private LocalDateTime offerDate;
+    private LocalDateTime rejectedDate;
 
     public String getId() {
         return id;
@@ -97,5 +100,29 @@ public class JobApplicationDocument {
 
     public void setResumeId(String resumeId) {
         this.resumeId = resumeId;
+    }
+
+    public LocalDateTime getInterviewDate() {
+        return interviewDate;
+    }
+
+    public void setInterviewDate(LocalDateTime interviewDate) {
+        this.interviewDate = interviewDate;
+    }
+
+    public LocalDateTime getOfferDate() {
+        return offerDate;
+    }
+
+    public void setOfferDate(LocalDateTime offerDate) {
+        this.offerDate = offerDate;
+    }
+
+    public LocalDateTime getRejectedDate() {
+        return rejectedDate;
+    }
+
+    public void setRejectedDate(LocalDateTime rejectedDate) {
+        this.rejectedDate = rejectedDate;
     }
 }

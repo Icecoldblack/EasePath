@@ -17,5 +17,5 @@ public interface JobApplicationService {
 
     JobApplicationDocument trackApplication(String userEmail, TrackApplicationRequest request);
 
-    JobApplicationDocument updateApplicationStatus(String id, String status);
+    JobApplicationDocument updateApplicationStatus(String id, String status, java.time.LocalDateTime date);
 }

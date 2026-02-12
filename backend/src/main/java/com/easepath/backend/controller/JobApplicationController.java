@@ -75,7 +75,8 @@ public class JobApplicationController {
             return ResponseEntity.status(401).build();
         }
 
-        JobApplicationDocument result = jobApplicationService.updateApplicationStatus(id, request.getStatus());
+        JobApplicationDocument result = jobApplicationService.updateApplicationStatus(id, request.getStatus(),
+                request.getDate());
         if (result == null) {
             return ResponseEntity.notFound().build();
         }
@@ -85,6 +86,7 @@ public class JobApplicationController {
     // Inner class for status update request
     public static class StatusUpdateRequest {
         private String status;
+        private java.time.LocalDateTime date;
 
         public String getStatus() {
             return status;
@@ -92,6 +94,14 @@ public class JobApplicationController {
 
         public void setStatus(String status) {
             this.status = status;
+        }
+
+        public java.time.LocalDateTime getDate() {
+            return date;
+        }
+
+        public void setDate(java.time.LocalDateTime date) {
+            this.date = date;
         }
     }
 }

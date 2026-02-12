@@ -280,13 +280,23 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     }
 
     @Override
-    public JobApplicationDocument updateApplicationStatus(String id, String status) {
-        LOGGER.info("Updating application {} status to {}", id, status);
+    public JobApplicationDocument updateApplicationStatus(String id, String status, LocalDateTime date) {
+        LOGGER.info("Updating application {} status to {} (date: {})", id, status, date);
 
         Optional<JobApplicationDocument> optionalDoc = jobApplicationRepository.findById(id);
         if (optionalDoc.isPresent()) {
             JobApplicationDocument doc = optionalDoc.get();
             doc.setStatus(status);
+
+            LocalDateTime effectiveDate = date != null ? date : LocalDateTime.now();
+            if ("interview".equalsIgnoreCase(status)) {
+                doc.setInterviewDate(effectiveDate);
+            } else if ("offer".equalsIgnoreCase(status)) {
+                doc.setOfferDate(effectiveDate);
+            } else if ("rejected".equalsIgnoreCase(status)) {
+                doc.setRejectedDate(effectiveDate);
+            }
+
             return jobApplicationRepository.save(doc);
         }
 

@@ -15,6 +15,9 @@ type Application = {
     appliedAt: string;
     matchScore: number;
     status: string;
+    interviewDate?: string;
+    offerDate?: string;
+    rejectedDate?: string;
 };
 
 const FILTER_TABS = [
@@ -87,6 +90,36 @@ const ApplicationsPage: React.FC = () => {
         return status.charAt(0).toUpperCase() + status.slice(1);
     };
 
+    const getLogoUrl = (companyName: string, jobUrl: string) => {
+        try {
+            if (jobUrl) {
+                const domain = new URL(jobUrl).hostname.replace('www.', '');
+                return `https://logo.clearbit.com/${domain}`;
+            }
+        } catch (e) {
+            // invalid url
+        }
+        return null;
+    };
+
+    const getDateLabel = (status: string) => {
+        switch (status) {
+            case 'interview': return 'Interview Date';
+            case 'offer': return 'Offer Date';
+            case 'rejected': return 'Rejection Date';
+            default: return 'Applied Date';
+        }
+    };
+
+    const getStatusDate = (app: Application) => {
+        switch (app.status) {
+            case 'interview': return app.interviewDate || app.appliedAt;
+            case 'offer': return app.offerDate || app.appliedAt;
+            case 'rejected': return app.rejectedDate || app.appliedAt;
+            default: return app.appliedAt;
+        }
+    };
+
     const filteredApplications = applications.filter(app =>
         activeFilter === 'all' || app.status === activeFilter
     );
@@ -100,7 +133,7 @@ const ApplicationsPage: React.FC = () => {
     };
 
     // Update application status
-    const handleStatusUpdate = async (appId: string, newStatus: string) => {
+    const handleStatusUpdate = async (appId: string, newStatus: string, date?: string) => {
         try {
             const token = localStorage.getItem('auth_token');
             const response = await fetch(`${API_BASE_URL}/api/apply/${appId}/status`, {
@@ -109,13 +142,21 @@ const ApplicationsPage: React.FC = () => {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status: newStatus, date })
             });
 
             if (response.ok) {
+                const updatedApp = await response.json();
                 // Update local state
                 setApplications(prev => prev.map(app =>
-                    app.id === appId ? { ...app, status: newStatus } : app
+                    app.id === appId ? {
+                        ...app,
+                        status: newStatus,
+                        // Update relevant date field based on status
+                        ...(newStatus === 'interview' ? { interviewDate: updatedApp.interviewDate } : {}),
+                        ...(newStatus === 'offer' ? { offerDate: updatedApp.offerDate } : {}),
+                        ...(newStatus === 'rejected' ? { rejectedDate: updatedApp.rejectedDate } : {})
+                    } : app
                 ));
             }
         } catch (error) {
@@ -290,10 +331,24 @@ const ApplicationsPage: React.FC = () => {
                             transition={{ delay: index * 0.05 }}
                         >
                             <div className="app-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="2" y="7" width="20" height="14" rx="2" />
-                                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-                                </svg>
+                                {getLogoUrl(app.companyName, app.jobUrl) ? (
+                                    <img
+                                        src={getLogoUrl(app.companyName, app.jobUrl)!}
+                                        alt={app.companyName}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).onerror = null;
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                            (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('style');
+                                        }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '4px' }}
+                                    />
+                                ) : null}
+                                <div style={getLogoUrl(app.companyName, app.jobUrl) ? { display: 'none' } : {}}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                                        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                                    </svg>
+                                </div>
                             </div>
 
                             <div className="app-details">
@@ -304,15 +359,30 @@ const ApplicationsPage: React.FC = () => {
 
                                 <div className="app-meta">
                                     <div className="meta-item">
-                                        <span className="meta-label">Applied Date</span>
+                                        <span className="meta-label">{getDateLabel(app.status)}</span>
                                         <span className="meta-value">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ minWidth: '14px' }}>
                                                 <rect x="3" y="4" width="18" height="18" rx="2" />
                                                 <line x1="16" y1="2" x2="16" y2="6" />
                                                 <line x1="8" y1="2" x2="8" y2="6" />
                                                 <line x1="3" y1="10" x2="21" y2="10" />
                                             </svg>
-                                            {new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            {app.status === 'interview' ? (
+                                                <input
+                                                    type="date"
+                                                    value={app.interviewDate ? new Date(app.interviewDate).toISOString().split('T')[0] : ''}
+                                                    onChange={(e) => {
+                                                        const date = new Date(e.target.value);
+                                                        // Set time to noon to avoid timezone shifting issues on basic date selection
+                                                        date.setHours(12, 0, 0, 0);
+                                                        handleStatusUpdate(app.id, 'interview', date.toISOString());
+                                                    }}
+                                                    className="date-picker-input"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            ) : (
+                                                new Date(getStatusDate(app)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                            )}
                                         </span>
                                     </div>
                                     <div className="meta-item">

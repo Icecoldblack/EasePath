@@ -22,15 +22,15 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             {/* Resume Quick Fill Section */}
             {!resumeParseSuccess && (
                 <div className="resume-autofill-section" style={{
-                    background: 'linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(163, 113, 247, 0.1))',
-                    border: '2px dashed rgba(88, 166, 255, 0.4)',
+                    background: 'var(--bg-secondary)',
+                    border: '1px dashed var(--border-color)',
                     borderRadius: '12px',
                     padding: '24px',
                     marginBottom: '24px',
                     textAlign: 'center'
                 }}>
-                    <h3 style={{ margin: '0 0 8px 0', color: '#58a6ff' }}>Quick Fill from Resume</h3>
-                    <p style={{ margin: '0 0 16px 0', opacity: 0.8, fontSize: '14px' }}>
+                    <h3 style={{ margin: '0 0 8px 0', color: 'var(--primary-color)' }}>Quick Fill from Resume</h3>
+                    <p style={{ margin: '0 0 16px 0', opacity: 0.8, fontSize: '14px', color: 'var(--text-secondary)' }}>
                         Upload your resume to auto-fill most fields instantly
                     </p>
                     <label style={{
@@ -38,8 +38,8 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         alignItems: 'center',
                         gap: '8px',
                         padding: '12px 24px',
-                        background: '#58a6ff',
-                        color: '#0d1117',
+                        background: 'var(--primary-color)',
+                        color: '#ffffff',
                         borderRadius: '8px',
                         cursor: isParsingResume ? 'wait' : 'pointer',
                         opacity: isParsingResume ? 0.7 : 1,
@@ -66,7 +66,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                             style={{ display: 'none' }}
                         />
                     </label>
-                    <p style={{ margin: '12px 0 0 0', fontSize: '12px', opacity: 0.6 }}>
+                    <p style={{ margin: '12px 0 0 0', fontSize: '12px', opacity: 0.6, color: 'var(--text-secondary)' }}>
                         Or fill in the fields manually below
                     </p>
                 </div>
@@ -74,16 +74,17 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
             {resumeParseSuccess && (
                 <div style={{
-                    background: 'rgba(88, 166, 255, 0.1)',
-                    border: '1px solid rgba(88, 166, 255, 0.3)',
+                    background: 'rgba(var(--primary-rgb), 0.1)',
+                    border: '1px solid var(--primary-color)',
                     borderRadius: '8px',
                     padding: '12px 16px',
                     marginBottom: '24px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    color: 'var(--text-primary)'
                 }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
