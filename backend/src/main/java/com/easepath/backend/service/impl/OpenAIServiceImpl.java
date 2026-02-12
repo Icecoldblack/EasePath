@@ -40,7 +40,7 @@ public class OpenAIServiceImpl implements OpenAIService {
     @Value("${gemini.endpoint:https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent}")
     private String geminiEndpoint;
 
-    // OpenAI configuration (fallback)
+    // OpenAI configuration (*Down for Now*)
     @Value("${openai.api-key:}")
     private String openaiApiKey;
 

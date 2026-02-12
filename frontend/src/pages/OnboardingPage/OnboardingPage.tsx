@@ -481,7 +481,7 @@ const OnboardingPage: React.FC = () => {
         {/* Error Message */}
         {error && (
           <div className="error-message">
-            <span>⚠️</span> {error}
+            {error}
           </div>
         )}
 

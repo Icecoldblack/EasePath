@@ -691,3 +691,142 @@ input:checked+.slider:before {
     padding: 20px;
   }
 }
+
+/* Security Tab Styles */
+.security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.security-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: rgba(22, 27, 35, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(48, 54, 61, 0.6);
+}
+
+.security-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 0 0 4px 0;
+}
+
+.security-info p {
+  font-size: 14px;
+  color: #8b949e;
+  margin: 0;
+}
+
+/* Danger Zone */
+.danger-zone {
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.danger-zone h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f85149;
+  margin: 0 0 16px 0;
+}
+
+.danger-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.danger-info h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 0 0 4px 0;
+}
+
+.danger-info p {
+  font-size: 14px;
+  color: #8b949e;
+  margin: 0;
+}
+
+.btn-danger {
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.2);
+  border-color: #f85149;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content.delete-confirm-modal {
+  background: #161b22;
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.delete-confirm-modal h3 {
+  color: #f85149;
+  font-size: 20px;
+  margin: 0 0 12px 0;
+}
+
+.delete-confirm-modal p {
+  color: #e6edf3;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.delete-input-group {
+  margin-bottom: 24px;
+}
+
+.delete-input-group label {
+  display: block;
+  font-size: 14px;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
