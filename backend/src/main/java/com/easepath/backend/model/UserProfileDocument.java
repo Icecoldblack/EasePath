@@ -49,6 +49,7 @@ public class UserProfileDocument {
 
     // Onboarding Status
     private boolean onboardingCompleted;
+    private boolean welcomeEmailSent;
 
     // Disability/Veteran Status (optional, for EEO)
     private String veteranStatus; // "Yes", "No", "Prefer not to say"
@@ -257,6 +258,14 @@ public class UserProfileDocument {
 
     public void setOnboardingCompleted(boolean onboardingCompleted) {
         this.onboardingCompleted = onboardingCompleted;
+    }
+
+    public boolean isWelcomeEmailSent() {
+        return welcomeEmailSent;
+    }
+
+    public void setWelcomeEmailSent(boolean welcomeEmailSent) {
+        this.welcomeEmailSent = welcomeEmailSent;
     }
 
     public String getVeteranStatus() {

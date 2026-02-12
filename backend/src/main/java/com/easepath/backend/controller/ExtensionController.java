@@ -31,6 +31,7 @@ import com.easepath.backend.repository.JobApplicationRepository;
 import com.easepath.backend.repository.ResumeRepository;
 import com.easepath.backend.repository.UserProfileRepository;
 import com.easepath.backend.service.AnswerLearningService;
+import com.easepath.backend.service.EmailService;
 import com.easepath.backend.service.FormMappingService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,19 +54,22 @@ public class ExtensionController {
     private final FormMappingService formMappingService;
     private final AnswerLearningService answerLearningService;
     private final com.easepath.backend.service.OpenAIService openAIService;
+    private final EmailService emailService;
 
     public ExtensionController(UserProfileRepository userProfileRepository,
             ResumeRepository resumeRepository,
             JobApplicationRepository jobApplicationRepository,
             FormMappingService formMappingService,
             AnswerLearningService answerLearningService,
-            com.easepath.backend.service.OpenAIService openAIService) {
+            com.easepath.backend.service.OpenAIService openAIService,
+            EmailService emailService) {
         this.userProfileRepository = userProfileRepository;
         this.resumeRepository = resumeRepository;
         this.jobApplicationRepository = jobApplicationRepository;
         this.formMappingService = formMappingService;
         this.answerLearningService = answerLearningService;
         this.openAIService = openAIService;
+        this.emailService = emailService;
     }
 
     // Helper method to extract authenticated user
@@ -253,6 +257,8 @@ public class ExtensionController {
         UserProfileDocument doc = userProfileRepository.findByEmail(userEmail)
                 .orElseGet(UserProfileDocument::new);
 
+        boolean isNewUser = (doc.getId() == null);
+
         // Update fields
         doc.setGoogleId(dto.getGoogleId());
         doc.setFirstName(dto.getFirstName());
@@ -292,6 +298,15 @@ public class ExtensionController {
 
         UserProfileDocument saved = userProfileRepository.save(doc);
         log.info("Profile saved successfully for user: {}", userEmail);
+
+        // Send welcome email to first-time users
+        if (isNewUser && !saved.isWelcomeEmailSent()) {
+            emailService.sendWelcomeEmail(userEmail, dto.getFirstName());
+            saved.setWelcomeEmailSent(true);
+            userProfileRepository.save(saved);
+            log.info("Welcome email queued for new user: {}", userEmail);
+        }
+
         return ResponseEntity.ok(toDto(saved));
     }
 

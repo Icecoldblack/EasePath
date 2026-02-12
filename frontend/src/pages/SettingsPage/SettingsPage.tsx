@@ -125,7 +125,7 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteInput !== 'DELETE') return;
+    if (deleteInput !== 'EASEPATH') return;
 
     // Check if token is expired BEFORE attempting deletion
     if (isTokenExpired()) {
