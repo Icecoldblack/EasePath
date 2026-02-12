@@ -372,6 +372,10 @@ const ApplicationsPage: React.FC = () => {
                                                     type="date"
                                                     value={app.interviewDate ? new Date(app.interviewDate).toISOString().split('T')[0] : ''}
                                                     onChange={(e) => {
+                                                        if (!e.target.value) {
+                                                            handleStatusUpdate(app.id, 'interview', '');
+                                                            return;
+                                                        }
                                                         const date = new Date(e.target.value);
                                                         // Set time to noon to avoid timezone shifting issues on basic date selection
                                                         date.setHours(12, 0, 0, 0);

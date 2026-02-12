@@ -122,7 +122,8 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             // Store user object where controllers can access it
             // Controllers use: request.getAttribute("currentUser")
             request.setAttribute("currentUser", user);
-            log.info("Authenticated user: {} for path: {}", user.getEmail(), path);
+            String maskedEmail = user.getEmail().replaceAll("(?<=.{3}).(?=.*@)", "*");
+            log.info("Authenticated user: {} for path: {}", maskedEmail, path);
 
         } catch (Exception e) {
             // Token verification threw an exception (network error, invalid format, etc.)
