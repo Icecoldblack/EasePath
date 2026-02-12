@@ -44,6 +44,20 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
                     <h1 className="header-title">Find Your Dream Job</h1>
                     <p className="header-subtitle">Browse through thousands of opportunities</p>
                 </div>
+                <button
+                    className={`recency-toggle ${filters.datePosted === 'today' ? 'active' : ''}`}
+                    onClick={() => onFilterChange('datePosted', filters.datePosted === 'today' ? 'week' : 'today')}
+                    title={filters.datePosted === 'today' ? 'Showing jobs from today — click to show this week' : 'Showing jobs from this week — click to show today only'}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span className="recency-toggle-label">{filters.datePosted === 'today' ? "Today's Jobs" : "This Week"}</span>
+                    <span className={`recency-toggle-indicator ${filters.datePosted === 'today' ? 'on' : ''}`}>
+                        <span className="recency-toggle-dot" />
+                    </span>
+                </button>
             </div>
 
             {/* Search Bar */}

@@ -86,7 +86,7 @@ const JobsPage: React.FC = () => {
           employmentType: '',
           experienceLevel: '',
           remoteOnly: false,
-          datePosted: '',
+          datePosted: 'week',
           salaryMin: '',
         };
       }
@@ -97,7 +97,7 @@ const JobsPage: React.FC = () => {
       employmentType: '',
       experienceLevel: '',
       remoteOnly: false,
-      datePosted: '',
+      datePosted: 'week',
       salaryMin: '',
     };
   });
@@ -295,7 +295,7 @@ const JobsPage: React.FC = () => {
       employmentType: '',
       experienceLevel: '',
       remoteOnly: false,
-      datePosted: '',
+      datePosted: 'week',
       salaryMin: '',
     };
     setFilters(emptyFilters);
