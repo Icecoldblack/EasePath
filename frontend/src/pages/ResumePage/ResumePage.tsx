@@ -179,7 +179,16 @@ const ResumePage: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         setResumeMessage({ type: 'success', text: result.message || 'Resume uploaded successfully!' });
-        setCurrentResume({ id: Date.now().toString(), fileName: resumeFile.name, uploadedAt: new Date().toISOString() });
+        const newResume: ResumeData = {
+          id: Date.now().toString(),
+          fileName: resumeFile.name,
+          uploadedAt: new Date().toISOString(),
+          fileSize: resumeFile.size,
+          applications: 0,
+          isDefault: true,
+        };
+        setCurrentResume(newResume);
+        setResumes([newResume]);
         setResumeFile(null);
         const fileInput = document.getElementById('resume-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -187,7 +196,8 @@ const ResumePage: React.FC = () => {
         if (result.remainingUploads !== undefined) {
           setRemainingUploads(result.remainingUploads);
         }
-        fetchCurrentResume();
+        // Re-fetch from backend for authoritative data
+        await fetchCurrentResume();
       } else if (response.status === 429) {
         // Quota exceeded
         const errorData = await response.json();
