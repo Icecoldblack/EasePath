@@ -9,7 +9,7 @@ React + TypeScript web app with Vite bundler.
 | React | 18.3 | UI Framework |
 | TypeScript | 5.4 | Type Safety |
 | Vite | 5.4 | Build Tool |
-| Tailwind CSS | 4.1 | Styling |
+| CSS | 4.1 | Styling |
 | React Router | 6.26 | Routing |
 
 ## Dependencies
